@@ -226,6 +226,13 @@ molecules:
     duration: "{duration.dramatic}"
     easing: "{easing.state}"
     context: "Contagem numérica animada (KPIs, métricas) com indicador direcional de crescimento"
+    mount-behavior: "count 0 → target over duration.dramatic (900ms), easing state"
+    live-update-behavior: "fade-swap — opacity 1→0.4 (120ms), swap value, opacity 0.4→1 (200ms)"
+    live-update-note: >
+      Nunca interpolar o valor em live updates — o counter animado (0→valor) é
+      exclusivo do mount. Atualizações ao vivo usam fade-swap: o número "respira"
+      (opacity nunca vai a zero), o valor troca durante o atenuamento.
+      opacity floor: 0.4. Fade-out: 120ms. Fade-in: 200ms.
 
   micro-typewriter:
     properties: "text content, cursor visibility"
@@ -1110,6 +1117,33 @@ receber um indicador direcional discreto ao lado do número; na interface de
 referência, o valor e a seta diagonal usam `positive-md`, sem moldura, com
 micro-movimento ascendente para reforçar crescimento sem transformar a
 micro-interaction em celebração.
+
+**Comportamento em live updates (distinção crítica):**
+O counter animado (0 → target) é **exclusivo do mount** — primeira renderização
+do componente. Atualizações ao vivo **nunca** interpolam o valor numericamente.
+Usar counter animado em live updates cria a impressão de números "correndo", que
+é ruído visual em contexto de dashboard.
+
+O padrão correto para live updates é **fade-swap**:
+1. `opacity 1 → 0.4` em 120ms (`easing.state`) — o número "respira", nunca some
+2. Após 120ms: trocar o valor no DOM
+3. `opacity 0.4 → 1` em 200ms (`easing.state`) — retorno suave
+
+O floor de opacidade é `0.4` (não zero) — o número permanece legível durante
+a transição. `opacity: 0` é agressivo demais para dados que mudam continuamente.
+
+**Numerais em Cormorant Garamond:**
+Esta fonte usa old-style numerals por padrão. Dígitos 3, 4, 5, 7 e 9 ficam
+abaixo da baseline, quebrando o alinhamento vertical em qualquer sequência
+numérica. Todo elemento numérico deve declarar:
+
+```css
+font-variant-numeric: tabular-nums;
+font-feature-settings: "lnum", "tnum";
+```
+
+Ver `orisonDesign.md → KPI Cards` para especificações completas de `min-width`
+e `text-align` que previnem layout shift em live updates.
 
 **Typewriter (`micro-typewriter`):**
 Texto escrito caractere por caractere com cursor vertical crimson (#8B1A1A)

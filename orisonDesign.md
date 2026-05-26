@@ -218,6 +218,22 @@ components:
     value: "{typography.display-md}"
     delta-positive: "{colors.positive-md}"
     delta-negative: "{colors.negative-md}"
+    numeric-rendering:
+      font-variant-numeric: "tabular-nums"
+      font-feature-settings: '"lnum", "tnum"'
+      note: >
+        Cormorant Garamond usa old-style numerals por padrão — dígitos 3,4,5,7,9
+        ficam abaixo da baseline. lnum força lining numerals (todos na mesma
+        altura). tnum garante largura fixa por dígito (mesmo efeito de tabular-nums,
+        mas via OpenType). Ambos são obrigatórios em todo elemento numérico.
+    layout-stability:
+      display: "inline-block"
+      min-width: "140px (display-md) | 100px (display-xs) | 60px (percentuais)"
+      text-align: "right"
+      note: >
+        min-width fixo previne layout shift quando o número muda de comprimento
+        (ex: "R$ 89.636" → "R$ 102.000"). text-align right alinha os dígitos
+        pelo lado das unidades — o olho ancora à direita em dados numéricos.
 
   # Chart — regras universais para bar, line, donut, area (seção 32)
   chart:
@@ -589,6 +605,36 @@ Hint abaixo: Micro (8px, 2px tracking, `text-muted`).
 | Focus     | `crimson`            | Sem outline externo adicional    |
 | Error     | `red`                | Hint usa `crimson-text`          |
 | Disabled  | `border-color`       | `opacity: 0.30`                  |
+
+---
+
+### KPI Cards
+
+Quatro variantes (Simple, Spark, Ring, Metric). Tipografia `display-md` (28px, Cormorant Garamond, weight 300) para o valor principal. Label em Micro (uppercase). Sem borda arredondada.
+
+**Renderização numérica obrigatória em todo elemento que exibe número:**
+
+```css
+font-variant-numeric: tabular-nums;
+font-feature-settings: "lnum", "tnum";
+```
+
+- `lnum` — lining numerals: força todos os dígitos à mesma altura de baseline. Sem `lnum`, o Cormorant Garamond usa old-style numerals por padrão — dígitos 3, 4, 5, 7 e 9 ficam abaixo da baseline, criando inconsistência visual.
+- `tnum` — tabular numerals: garante largura fixa por dígito via OpenType, reforçando o efeito de `tabular-nums`.
+
+Ambas as propriedades são obrigatórias. Omitir qualquer uma produz numerais desalinhados verticalmente ou com largura variável.
+
+**Estabilidade de layout em atualizações ao vivo:**
+
+```css
+display: inline-block;
+min-width: 140px;   /* display-md: cobre "R$ 102.000" */
+text-align: right;
+```
+
+`min-width` fixo previne layout shift quando o comprimento do número muda (ex.: `"R$ 89.636"` → `"R$ 102.000"`). `text-align: right` ancora os dígitos pelo lado das unidades — o olho lê números da direita para a esquerda. Sem `min-width`, o container encolhe com o número e empurra elementos adjacentes.
+
+Valores por contexto: `140px` para `display-md`, `100px` para `display-xs` (Header), `60px` para percentuais (KpiRing).
 
 ---
 
