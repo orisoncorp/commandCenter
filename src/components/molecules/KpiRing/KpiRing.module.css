@@ -53,6 +53,10 @@
   color: var(--color-text-primary);
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "lnum", "tnum";
+  display: inline-block;
+  min-width: 60px;
+  text-align: right;
 }
 
 .sub {

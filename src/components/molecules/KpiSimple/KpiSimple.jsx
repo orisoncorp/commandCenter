@@ -4,7 +4,7 @@ import Delta from '../../atoms/Delta/Delta';
 import { useCountUp } from '../../../motion/useCountUp';
 
 export default function KpiSimple({ label, value, delta, format = 'number', formatFn }) {
-  const { value: animated, animKey } = useCountUp(typeof value === 'number' ? value : 0);
+  const { value: animated, visible } = useCountUp(typeof value === 'number' ? value : 0);
 
   const display = formatFn
     ? formatFn(animated)
@@ -20,8 +20,8 @@ export default function KpiSimple({ label, value, delta, format = 'number', form
     <div className={styles.card}>
       <Label color="muted">{label}</Label>
       <span
-        key={animKey}
-        className={`${styles.value} ${animKey > 0 ? 'kpi-live-update' : ''}`}
+        className={styles.value}
+        style={{ transition: 'opacity 200ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.4 }}
       >
         {display}
       </span>

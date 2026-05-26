@@ -27,7 +27,7 @@ function Ring({ value, target = 100, size = 40, stroke = 4 }) {
 }
 
 export default function KpiRing({ label, value, target = 100 }) {
-  const { value: animated, animKey } = useCountUp(typeof value === 'number' ? value : 0);
+  const { value: animated, visible } = useCountUp(typeof value === 'number' ? value : 0);
   const pct = Math.round(animated);
 
   return (
@@ -40,8 +40,8 @@ export default function KpiRing({ label, value, target = 100 }) {
         </div>
         <div className={styles.meta}>
           <span
-            key={animKey}
-            className={`${styles.value} ${animKey > 0 ? 'kpi-live-update' : ''}`}
+            className={styles.value}
+            style={{ transition: 'opacity 200ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.4 }}
           >
             {pct}%
           </span>

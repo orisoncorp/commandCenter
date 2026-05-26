@@ -23,15 +23,6 @@ html, body, #root {
   color: var(--color-text-primary);
 }
 
-/* Fade-swap animation for live KPI updates */
-@keyframes kpiFadeSwap {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-.kpi-live-update {
-  animation: kpiFadeSwap 150ms cubic-bezier(0.4, 0.0, 0.2, 1) both;
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -41,14 +41,17 @@ export function getMockEvent() {
   };
 }
 
+const INTEGER_KEYS = new Set(['contratos', 'nps', 'meta']);
+
 export function getUpdatedData(current) {
   const updated = { ...current };
   Object.keys(updated).forEach(key => {
     if (updated[key].value && typeof updated[key].value === 'number') {
       const variance = updated[key].value * (Math.random() * 0.04 - 0.02);
+      const raw = updated[key].value + variance;
       updated[key] = {
         ...updated[key],
-        value: Math.round((updated[key].value + variance) * 100) / 100,
+        value: INTEGER_KEYS.has(key) ? Math.round(raw) : Math.round(raw * 100) / 100,
       };
     }
   });

@@ -40,15 +40,15 @@ function Sparkline({ data }) {
 }
 
 export default function KpiSpark({ label, value, delta, sparkline = [], format = 'percent' }) {
-  const { value: animated, animKey } = useCountUp(typeof value === 'number' ? value : 0);
+  const { value: animated, visible } = useCountUp(typeof value === 'number' ? value : 0);
   const display = format === 'percent' ? `${animated.toFixed(1)}%` : animated.toFixed(1);
 
   return (
     <div className={styles.card}>
       <Label color="muted">{label}</Label>
       <span
-        key={animKey}
-        className={`${styles.value} ${animKey > 0 ? 'kpi-live-update' : ''}`}
+        className={styles.value}
+        style={{ transition: 'opacity 200ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.4 }}
       >
         {display}
       </span>

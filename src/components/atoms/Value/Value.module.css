@@ -4,6 +4,7 @@
   font-weight: 300;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "lnum", "tnum";
 }
 
 .sm { font-size: var(--display-sm); }

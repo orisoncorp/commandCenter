@@ -2,18 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { DURATION } from './constants';
 
 // Mount: animates 0 → target (counter, DURATION.dramatic).
-// Live updates: returns target immediately + increments animKey to trigger CSS fade-swap.
+// Live updates: fade-out (80ms) → swap value → fade-in (150ms).
 export function useCountUp(target, duration = DURATION.dramatic) {
   const [display, setDisplay] = useState(0);
-  const [animKey, setAnimKey] = useState(0);
+  const [visible, setVisible] = useState(true);
   const isMountRef = useRef(true);
   const rafRef = useRef(null);
+  const swapTimerRef = useRef(null);
 
   useEffect(() => {
     if (target == null || isNaN(target)) return;
 
     if (isMountRef.current) {
-      // First render: count up from 0
       isMountRef.current = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       const startTime = performance.now();
@@ -30,14 +30,22 @@ export function useCountUp(target, duration = DURATION.dramatic) {
       };
       rafRef.current = requestAnimationFrame(animate);
     } else {
-      // Live update: snap to value, trigger fade-swap via animKey
+      // Live update: fade-out → swap → fade-in
       if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-      setDisplay(target);
-      setAnimKey(k => k + 1);
+      if (swapTimerRef.current) { clearTimeout(swapTimerRef.current); }
+      setVisible(false);
+      swapTimerRef.current = setTimeout(() => {
+        setDisplay(target);
+        setVisible(true);
+        swapTimerRef.current = null;
+      }, 120);
     }
 
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
+    };
   }, [target]);
 
-  return { value: display, animKey };
+  return { value: display, visible };
 }
