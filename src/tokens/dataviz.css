@@ -1,0 +1,26 @@
+:root {
+  /* Sequencial Crimson */
+  --dv-crim-1: #1A0505;
+  --dv-crim-2: #2D0A0A;
+  --dv-crim-3: #4A1010;
+  --dv-crim-4: #6B1515;
+  --dv-crim-5: #8B1A1A;
+  --dv-crim-6: #A52020;
+  --dv-crim-7: #C03030;
+  --dv-crim-8: #D94040;
+
+  /* Categórica */
+  --dv-cat-1: #8B1A1A;
+  --dv-cat-2: #8B4A1A;
+  --dv-cat-3: #1A6B6B;
+  --dv-cat-4: #4A6A8B;
+  --dv-cat-5: #4A6B1A;
+  --dv-cat-6: #6B1A6B;
+
+  /* Divergente */
+  --dv-div-neg-hi: #8B1A1A;
+  --dv-div-neg: #6B1515;
+  --dv-div-neutral: #3A3A3C;
+  --dv-div-pos: #1A5C2E;
+  --dv-div-pos-hi: #27834A;
+}

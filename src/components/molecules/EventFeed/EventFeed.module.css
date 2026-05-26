@@ -1,0 +1,106 @@
+.feed {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: var(--space-2) var(--space-3);
+  gap: var(--space-1);
+}
+
+.header {
+  font-family: var(--font-body);
+  font-size: var(--micro-size);
+  font-weight: var(--micro-weight);
+  letter-spacing: var(--micro-spacing);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-1);
+  flex-shrink: 0;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px 0;
+}
+
+.badge {
+  font-family: var(--font-body);
+  font-size: 7px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 2px 4px;
+  border-radius: 2px;
+  text-align: center;
+  line-height: 1;
+}
+
+.positive {
+  background: rgba(26, 92, 46, 0.15);
+  color: #3AAA62;
+}
+
+.alert {
+  background: rgba(139, 74, 26, 0.15);
+  color: #E07840;
+}
+
+.crimson {
+  background: rgba(139, 26, 26, 0.15);
+  color: var(--color-crimson-text);
+}
+
+.neutral {
+  background: rgba(90, 90, 90, 0.15);
+  color: var(--color-text-secondary);
+}
+
+.empresa {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  font-weight: var(--body-weight);
+  color: var(--color-text-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.value {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.pos { color: #3AAA62; }
+.neg { color: var(--color-crimson-text); }
+
+.ts {
+  font-family: var(--font-body);
+  font-size: 7px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.empty {
+  font-family: var(--font-body);
+  font-size: var(--micro-size);
+  font-weight: var(--micro-weight);
+  letter-spacing: var(--micro-spacing);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  padding-top: var(--space-2);
+}

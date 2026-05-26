@@ -1,0 +1,29 @@
+{
+  "title": "COMMAND CENTER",
+  "hero": "globe",
+  "panels": {
+    "left": [
+      { "type": "kpi-simple", "source": "mrr", "label": "MRR ATUAL" },
+      { "type": "kpi-spark", "source": "conversao", "label": "CONVERSÃO" },
+      { "type": "kpi-simple", "source": "churn", "label": "CHURN RATE" }
+    ],
+    "right": [
+      { "type": "kpi-metric", "source": "ticket", "label": "TICKET MÉDIO" },
+      { "type": "kpi-simple", "source": "pipeline", "label": "PIPELINE" },
+      { "type": "kpi-ring", "source": "meta", "label": "META MENSAL" }
+    ]
+  },
+  "bottom": {
+    "type": "data-table",
+    "source": "contracts",
+    "columns": ["empresa", "contrato", "mrr", "status", "revisao"]
+  },
+  "header": {
+    "kpis": ["mrr", "contratos"],
+    "showTimestamp": true
+  },
+  "data": {
+    "adapter": "mock",
+    "refreshInterval": 3000
+  }
+}

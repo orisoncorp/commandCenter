@@ -1,0 +1,46 @@
+.root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-black);
+  overflow: hidden;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.bottomInner {
+  display: flex;
+  height: 100%;
+  gap: 0;
+  overflow: hidden;
+}
+
+.bottomInner > *:not(:last-child) {
+  border-right: 1px solid var(--color-border);
+  flex: 1;
+}
+
+.bottomInner > *:last-child {
+  width: 240px;
+  flex-shrink: 0;
+}
+
+.widgetSlot {
+  font-family: var(--font-body);
+  font-size: var(--micro-size);
+  font-weight: var(--micro-weight);
+  letter-spacing: var(--micro-spacing);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}

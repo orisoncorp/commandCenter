@@ -1,0 +1,18 @@
+.value {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 300;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm { font-size: var(--display-sm); }
+.md { font-size: var(--display-md); }
+.lg { font-size: var(--display-lg); }
+.xl { font-size: var(--display-xl); }
+.hero { font-size: var(--display-hero); }
+
+.primary { color: var(--color-text-primary); }
+.secondary { color: var(--color-text-secondary); }
+.muted { color: var(--color-text-muted); }
+.crimson { color: var(--color-crimson-text); }
