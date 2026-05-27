@@ -10,6 +10,7 @@ import KpiMetric from '../../molecules/KpiMetric/KpiMetric';
 import ChartBar from '../../molecules/ChartBar/ChartBar';
 import DataTable from '../../molecules/DataTable/DataTable';
 import EventFeed from '../../molecules/EventFeed/EventFeed';
+import InsightCard from '../../molecules/InsightCard/InsightCard';
 import Globe from '../../../heroes/Globe/Globe';
 import { useData } from '../../../data/DataProvider';
 import { useCallback } from 'react';
@@ -23,6 +24,7 @@ const WIDGET_MAP = {
   'kpi-metric': KpiMetric,
   'chart-bar': ChartBar,
   'data-table': DataTable,
+  'insight': InsightCard,
 };
 
 const FORMAT_MAP = {
@@ -36,12 +38,18 @@ const FORMAT_MAP = {
   nps: 'number',
 };
 
-function Widget({ widgetConfig, data, table }) {
+function Widget({ widgetConfig, data, table, insights }) {
   const Component = WIDGET_MAP[widgetConfig.type];
   if (!Component) return null;
 
   if (widgetConfig.type === 'data-table') {
     return <Component data={table} columns={widgetConfig.columns || []} />;
+  }
+
+  if (widgetConfig.type === 'insight') {
+    const item = insights?.[widgetConfig.index ?? 0];
+    if (!item) return null;
+    return <Component {...item} />;
   }
 
   const source = data?.[widgetConfig.source];
@@ -76,7 +84,7 @@ function getPipelineChart(data) {
 }
 
 export default function CommandCenter({ config }) {
-  const { data, table, events, streaming, startStream, stopStream } = useData();
+  const { data, table, events, insights, streaming, startStream, stopStream } = useData();
   const headerKpis = buildHeaderKpis(config, data);
   const leftWidgets = config?.panels?.left || [];
   const rightWidgets = config?.panels?.right || [];
@@ -98,7 +106,7 @@ export default function CommandCenter({ config }) {
       <div className={styles.body}>
         <Panel position="left">
           {leftWidgets.map((w, i) => (
-            <Widget key={i} widgetConfig={w} data={data} table={table} />
+            <Widget key={i} widgetConfig={w} data={data} table={table} insights={insights} />
           ))}
           <ChartBar
             label="PIPELINE MENSAL"
@@ -110,7 +118,7 @@ export default function CommandCenter({ config }) {
 
         <Panel position="right">
           {rightWidgets.map((w, i) => (
-            <Widget key={i} widgetConfig={w} data={data} table={table} />
+            <Widget key={i} widgetConfig={w} data={data} table={table} insights={insights} />
           ))}
         </Panel>
       </div>

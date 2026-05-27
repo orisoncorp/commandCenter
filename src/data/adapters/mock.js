@@ -25,8 +25,27 @@ const EVENTS = [
   { type: 'contrato', empresa: 'Theta Tech', value: 5200 },
 ];
 
+const INSIGHTS = [
+  {
+    title: 'Churn Risk',
+    content: 'Gamma SA apresenta 3 tickets abertos sem resolução há 14 dias. Probabilidade de churn: 67%. Ação recomendada: reunião de retenção.',
+    type: 'auto',
+    timestamp: '14:30',
+  },
+  {
+    title: 'Oportunidade de Upsell',
+    content: 'Delta Corp atingiu 95% do limite de API contratado. Histórico indica crescimento de 20% mês a mês. Janela de upsell nos próximos 15 dias.',
+    type: 'auto',
+    timestamp: '11:15',
+  },
+];
+
 export function getMockData() {
   return { ...BASE_DATA };
+}
+
+export function getMockInsights() {
+  return [...INSIGHTS];
 }
 
 export function getMockTable() {

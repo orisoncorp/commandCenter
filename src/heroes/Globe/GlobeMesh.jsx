@@ -21,7 +21,7 @@ export default function GlobeMesh({ radius = 1, autoRotate = true, rotating }) {
           color="#e8e6e1"
           wireframe
           transparent
-          opacity={0.12}
+          opacity={0.08}
           depthWrite={false}
         />
       </mesh>
@@ -33,6 +33,16 @@ export default function GlobeMesh({ radius = 1, autoRotate = true, rotating }) {
           transparent
           opacity={0.6}
           side={THREE.BackSide}
+        />
+      </mesh>
+      {/* Equator glow ring */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius, radius * 0.012, 8, 80]} />
+        <meshBasicMaterial
+          color="#8B1A1A"
+          transparent
+          opacity={0.04}
+          depthWrite={false}
         />
       </mesh>
     </group>

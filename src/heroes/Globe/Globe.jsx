@@ -75,7 +75,7 @@ export default function Globe() {
         gl={{ antialias: true, alpha: true }}
         style={{ background: 'transparent' }}
       >
-        <ambientLight intensity={0.06} />
+        <ambientLight intensity={0.03} />
         <pointLight position={[3, 3, 3]} intensity={0.5} color="#ffffff" />
         <pointLight position={[-3, -2, -3]} intensity={0.12} color="#8B1A1A" />
 

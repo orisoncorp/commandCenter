@@ -107,6 +107,18 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
+      {/* Halo ring around data point */}
+      <mesh position={position}>
+        <ringGeometry args={[VISUAL_RADIUS * 1.8, VISUAL_RADIUS * 2.2, 24]} />
+        <meshBasicMaterial
+          color="#8B1A1A"
+          transparent
+          opacity={0.15}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
       {/* Visual dot */}
       <mesh ref={visualRef} position={position}>
         <sphereGeometry args={[VISUAL_RADIUS, 8, 8]} />

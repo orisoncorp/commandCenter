@@ -1,11 +1,20 @@
 .hero {
-  flex: 1;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   background: var(--color-black);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    position: relative;
+    height: 50vh;
+    flex-shrink: 0;
+  }
 }
 
 .placeholder {

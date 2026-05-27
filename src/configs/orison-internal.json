@@ -5,7 +5,8 @@
     "left": [
       { "type": "kpi-simple", "source": "mrr", "label": "MRR ATUAL" },
       { "type": "kpi-spark", "source": "conversao", "label": "CONVERSÃO" },
-      { "type": "kpi-simple", "source": "churn", "label": "CHURN RATE" }
+      { "type": "kpi-simple", "source": "churn", "label": "CHURN RATE" },
+      { "type": "insight", "index": 0 }
     ],
     "right": [
       { "type": "kpi-metric", "source": "ticket", "label": "TICKET MÉDIO" },

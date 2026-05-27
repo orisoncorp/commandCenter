@@ -9,8 +9,16 @@
 
 .body {
   flex: 1;
-  display: flex;
+  position: relative;
   overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .body {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
 }
 
 .bottomInner {
