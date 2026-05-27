@@ -11,11 +11,13 @@ import ChartBar from '../../molecules/ChartBar/ChartBar';
 import DataTable from '../../molecules/DataTable/DataTable';
 import EventFeed from '../../molecules/EventFeed/EventFeed';
 import InsightCard from '../../molecules/InsightCard/InsightCard';
-import Globe from '../../../heroes/Globe/Globe';
+import { lazy, Suspense, useCallback, useMemo, memo } from 'react';
 import { useData } from '../../../data/DataProvider';
-import { useCallback } from 'react';
+
+const Globe = lazy(() => import('../../../heroes/Globe/Globe'));
 
 const HERO_MAP = { globe: Globe };
+const GLOBE_FALLBACK = <div style={{ position: 'absolute', inset: 0, background: '#0a0a0a' }} />;
 
 const WIDGET_MAP = {
   'kpi-simple': KpiSimple,
@@ -38,7 +40,7 @@ const FORMAT_MAP = {
   nps: 'number',
 };
 
-function Widget({ widgetConfig, data, table, insights }) {
+const Widget = memo(function Widget({ widgetConfig, data, table, insights }) {
   const Component = WIDGET_MAP[widgetConfig.type];
   if (!Component) return null;
 
@@ -66,7 +68,7 @@ function Widget({ widgetConfig, data, table, insights }) {
       format={FORMAT_MAP[widgetConfig.source] || 'number'}
     />
   );
-}
+});
 
 function buildHeaderKpis(config, data) {
   if (!config?.header?.kpis || !data) return [];
@@ -85,10 +87,13 @@ function getPipelineChart(data) {
 
 export default function CommandCenter({ config }) {
   const { data, table, events, insights, streaming, startStream, stopStream } = useData();
-  const headerKpis = buildHeaderKpis(config, data);
-  const leftWidgets = config?.panels?.left || [];
-  const rightWidgets = config?.panels?.right || [];
+
+  const headerKpis = useMemo(() => buildHeaderKpis(config, data), [config, data]);
+  const pipelineChart = useMemo(() => getPipelineChart(data), [data]);
+  const leftWidgets = useMemo(() => config?.panels?.left || [], [config]);
+  const rightWidgets = useMemo(() => config?.panels?.right || [], [config]);
   const bottomConfig = config?.bottom;
+  const heroComponent = useMemo(() => HERO_MAP[config?.hero], [config]);
 
   const handleToggleStream = useCallback(() => {
     streaming ? stopStream() : startStream();
@@ -108,13 +113,12 @@ export default function CommandCenter({ config }) {
           {leftWidgets.map((w, i) => (
             <Widget key={i} widgetConfig={w} data={data} table={table} insights={insights} />
           ))}
-          <ChartBar
-            label="PIPELINE MENSAL"
-            data={getPipelineChart(data)}
-          />
+          <ChartBar label="PIPELINE MENSAL" data={pipelineChart} />
         </Panel>
 
-        <HeroContainer hero={HERO_MAP[config?.hero]} />
+        <Suspense fallback={GLOBE_FALLBACK}>
+          <HeroContainer hero={heroComponent} />
+        </Suspense>
 
         <Panel position="right">
           {rightWidgets.map((w, i) => (
@@ -126,7 +130,7 @@ export default function CommandCenter({ config }) {
       <BottomBar>
         <div className={styles.bottomInner}>
           {bottomConfig && data && (
-            <Widget widgetConfig={bottomConfig} data={data} table={table} />
+            <Widget widgetConfig={bottomConfig} data={data} table={table} insights={insights} />
           )}
           <EventFeed events={events} />
         </div>

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import styles from './ChartBar.module.css';
 import Label from '../../atoms/Label/Label';
 import { calcStaggerDelay, DURATION } from '../../../motion/constants';
@@ -8,18 +7,6 @@ const CHART_W = W - PAD_L;
 const CHART_H = H - PAD_B - PAD_T;
 
 export default function ChartBar({ label, data = [] }) {
-  const [entered, setEntered] = useState([]);
-
-  useEffect(() => {
-    if (!data.length) return;
-    setEntered([]);
-    data.forEach((_, i) => {
-      setTimeout(() => {
-        setEntered(prev => [...prev, i]);
-      }, calcStaggerDelay(i, 60));
-    });
-  }, [data.length]);
-
   if (!data.length) return null;
 
   const maxVal = Math.max(...data.map(d => d.value), 1);
@@ -30,7 +17,6 @@ export default function ChartBar({ label, data = [] }) {
     <div className={styles.wrap}>
       {label && <Label color="muted">{label}</Label>}
       <svg viewBox={`0 0 ${W} ${H}`} className={styles.chart}>
-        {/* Grid lines */}
         {[0.25, 0.5, 0.75, 1].map(frac => {
           const y = PAD_T + CHART_H * (1 - frac);
           return (
@@ -39,12 +25,10 @@ export default function ChartBar({ label, data = [] }) {
           );
         })}
 
-        {/* Bars — full height rects, animated via scaleY transform */}
         {data.map((d, i) => {
           const barH = (d.value / maxVal) * CHART_H;
           const x = PAD_L + gap * i + (gap - barW) / 2;
           const baseY = PAD_T + CHART_H;
-          const isIn = entered.includes(i);
           return (
             <rect
               key={i}
@@ -53,18 +37,16 @@ export default function ChartBar({ label, data = [] }) {
               width={barW}
               height={barH}
               fill="var(--color-crimson)"
+              className={styles.bar}
               style={{
                 transformOrigin: `${x + barW / 2}px ${baseY}px`,
-                transform: isIn ? 'scaleY(1)' : 'scaleY(0)',
-                transition: isIn
-                  ? `transform ${DURATION.moderate}ms cubic-bezier(0.16, 1, 0.3, 1)`
-                  : 'none',
+                animationDelay: `${calcStaggerDelay(i, 60)}ms`,
+                animationDuration: `${DURATION.moderate}ms`,
               }}
             />
           );
         })}
 
-        {/* X labels */}
         {data.map((d, i) => {
           const x = PAD_L + gap * i + gap / 2;
           return (

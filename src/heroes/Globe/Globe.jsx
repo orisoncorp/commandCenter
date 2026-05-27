@@ -5,7 +5,7 @@ import GlobeMesh from './GlobeMesh';
 import DataPoint from './DataPoint';
 import ConnectionLines from './ConnectionLines';
 import styles from './Globe.module.css';
-import { useData } from '../../data/DataProvider';
+import { useStream } from '../../data/DataProvider';
 import { calcStaggerDelay } from '../../motion/constants';
 
 const LOCATIONS = [
@@ -19,7 +19,7 @@ const LOCATIONS = [
 const MOUNT_DELAYS = LOCATIONS.map((_, i) => calcStaggerDelay(i, 60));
 
 export default function Globe({ onSelectContract, selectedContract }) {
-  const { table, events } = useData();
+  const { table, events } = useStream();
   const [rotating, setRotating] = useState(true);
   const [pulseSignals, setPulseSignals] = useState({});
   const prevEventCountRef = useRef(0);

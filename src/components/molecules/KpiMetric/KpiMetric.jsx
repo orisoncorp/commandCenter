@@ -2,16 +2,11 @@ import styles from './KpiMetric.module.css';
 import Label from '../../atoms/Label/Label';
 import Delta from '../../atoms/Delta/Delta';
 import { useCountUp } from '../../../motion/useCountUp';
+import { formatValue } from '../../../data/format';
 
 export default function KpiMetric({ label, value, compare, delta, format = 'currency' }) {
   const { value: animated, visible } = useCountUp(typeof value === 'number' ? value : 0);
-
-  const fmt = (v) => {
-    if (format === 'currency') {
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
-    }
-    return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0);
-  };
+  const fmt = (v) => formatValue(v, format);
 
   return (
     <div className={styles.card}>

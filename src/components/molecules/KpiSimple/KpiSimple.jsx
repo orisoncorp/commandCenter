@@ -2,19 +2,11 @@ import styles from './KpiSimple.module.css';
 import Label from '../../atoms/Label/Label';
 import Delta from '../../atoms/Delta/Delta';
 import { useCountUp } from '../../../motion/useCountUp';
+import { formatValue } from '../../../data/format';
 
 export default function KpiSimple({ label, value, delta, format = 'number', formatFn }) {
   const { value: animated, visible } = useCountUp(typeof value === 'number' ? value : 0);
-
-  const display = formatFn
-    ? formatFn(animated)
-    : format === 'currency'
-    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(animated)
-    : format === 'percent'
-    ? `${animated.toFixed(1)}%`
-    : animated >= 1000
-    ? `${(animated / 1000).toFixed(1)}k`
-    : animated.toFixed(animated % 1 !== 0 ? 1 : 0);
+  const display = formatFn ? formatFn(animated) : formatValue(animated, format);
 
   return (
     <div className={styles.card}>

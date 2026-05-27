@@ -88,14 +88,22 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
 
     visualRef.current.scale.setScalar(mountScale * hoverScaleRef.current * pulseMultiplier * heartbeat);
 
-    // Depth opacity — flag needsUpdate so Three.js re-uploads the material
-    if (visualRef.current.material) {
-      visualRef.current.material.opacity = depthOpacity * 0.95;
-      visualRef.current.material.needsUpdate = true;
+    // Depth opacity — only set needsUpdate when value actually changed
+    const dotMat = visualRef.current.material;
+    if (dotMat) {
+      const next = depthOpacity * 0.95;
+      if (Math.abs(dotMat.opacity - next) > 0.001) {
+        dotMat.opacity = next;
+        dotMat.needsUpdate = true;
+      }
     }
-    if (haloRef.current?.material) {
-      haloRef.current.material.opacity = depthOpacity * 0.15;
-      haloRef.current.material.needsUpdate = true;
+    const haloMat = haloRef.current?.material;
+    if (haloMat) {
+      const next = depthOpacity * 0.15;
+      if (Math.abs(haloMat.opacity - next) > 0.001) {
+        haloMat.opacity = next;
+        haloMat.needsUpdate = true;
+      }
     }
   });
 
