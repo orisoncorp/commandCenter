@@ -24,6 +24,12 @@ html, body, #root {
 }
 
 
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-black); }
+::-webkit-scrollbar-thumb { background: var(--color-slate); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-gray); }
+* { scrollbar-width: thin; scrollbar-color: var(--color-slate) var(--color-black); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01s !important;

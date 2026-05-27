@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import styles from './Globe.module.css';
 
 const VISUAL_RADIUS = 0.022;
-const HITBOX_RADIUS = 0.08; // ~3.6× visual — easy to click
+const HITBOX_RADIUS = 0.15;
 const LABEL_RADIUS = 1.14;
 
 function latLngToVec3(lat, lng, r) {

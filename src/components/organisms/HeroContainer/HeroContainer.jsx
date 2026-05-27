@@ -1,10 +1,22 @@
+import { useState, useCallback } from 'react';
 import styles from './HeroContainer.module.css';
+import DetailPanel from '../../../heroes/Globe/DetailPanel';
 
 export default function HeroContainer({ hero: HeroComponent }) {
+  const [selectedContract, setSelectedContract] = useState(null);
+
+  const handleSelect = useCallback((contract) => {
+    setSelectedContract(prev =>
+      prev?.contrato === contract?.contrato ? null : contract
+    );
+  }, []);
+
+  const handleClose = useCallback(() => setSelectedContract(null), []);
+
   return (
     <div className={styles.hero}>
       {HeroComponent ? (
-        <HeroComponent />
+        <HeroComponent onSelectContract={handleSelect} selectedContract={selectedContract} />
       ) : (
         <div className={styles.placeholder}>
           <svg className={styles.wireframe} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -18,6 +30,10 @@ export default function HeroContainer({ hero: HeroComponent }) {
           <span className={styles.placeholderLabel}>HERO 3D</span>
           <span className={styles.placeholderSub}>config.hero não definido</span>
         </div>
+      )}
+
+      {selectedContract && (
+        <DetailPanel contract={selectedContract} onClose={handleClose} />
       )}
     </div>
   );
