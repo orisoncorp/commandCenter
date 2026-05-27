@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import GlobeMesh from './GlobeMesh';
 import DataPoint from './DataPoint';
+import ConnectionLines from './ConnectionLines';
 import styles from './Globe.module.css';
 import { useData } from '../../data/DataProvider';
 import { calcStaggerDelay } from '../../motion/constants';
@@ -63,8 +64,10 @@ export default function Globe({ onSelectContract, selectedContract }) {
       <ambientLight intensity={0.03} />
       <pointLight position={[3, 3, 3]} intensity={0.5} color="#ffffff" />
       <pointLight position={[-3, -2, -3]} intensity={0.12} color="#8B1A1A" />
+      <directionalLight position={[-3, 2, -5]} intensity={0.15} color="#e8e6e1" />
 
       <GlobeMesh radius={1} autoRotate={!reducedMotion} rotating={rotating} />
+      <ConnectionLines />
 
       {points.map((pt) => (
         <DataPoint

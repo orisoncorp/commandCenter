@@ -5,7 +5,7 @@ import * as THREE from 'three';
 export default function GlobeMesh({ radius = 1, autoRotate = true, rotating }) {
   const groupRef = useRef();
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     if (!groupRef.current) return;
     if (autoRotate && rotating) {
       groupRef.current.rotation.y += 0.002;
@@ -14,18 +14,18 @@ export default function GlobeMesh({ radius = 1, autoRotate = true, rotating }) {
 
   return (
     <group ref={groupRef}>
-      {/* Wireframe sphere — lat/lng lines */}
+      {/* Dense wireframe — 64 segments for richer lat/lng grid */}
       <mesh>
-        <sphereGeometry args={[radius, 36, 18]} />
+        <sphereGeometry args={[radius, 64, 32]} />
         <meshBasicMaterial
           color="#e8e6e1"
           wireframe
           transparent
-          opacity={0.08}
+          opacity={0.07}
           depthWrite={false}
         />
       </mesh>
-      {/* Subtle inner glow sphere */}
+      {/* Inner dark fill to occlude back-face wireframe */}
       <mesh>
         <sphereGeometry args={[radius * 0.995, 32, 16]} />
         <meshBasicMaterial
@@ -33,6 +33,17 @@ export default function GlobeMesh({ radius = 1, autoRotate = true, rotating }) {
           transparent
           opacity={0.6}
           side={THREE.BackSide}
+        />
+      </mesh>
+      {/* Atmospheric halo — BackSide glow */}
+      <mesh>
+        <sphereGeometry args={[radius * 1.08, 64, 64]} />
+        <meshBasicMaterial
+          color="#8B1A1A"
+          transparent
+          opacity={0.015}
+          side={THREE.BackSide}
+          depthWrite={false}
         />
       </mesh>
       {/* Equator glow ring */}

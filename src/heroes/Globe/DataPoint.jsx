@@ -18,11 +18,15 @@ function latLngToVec3(lat, lng, r) {
   );
 }
 
+// Shared vec3 for dot product — avoids per-frame allocation
+const _camDir = new THREE.Vector3();
+
 export default function DataPoint({ lat, lng, empresa, data, onSelect, selected, reducedMotion, mountDelay = 0, pulseSignal }) {
   const visualRef = useRef();
+  const haloRef = useRef();
   const [hovered, setHovered] = useState(false);
   const [mountScale, setMountScale] = useState(reducedMotion ? 1 : 0);
-  const { gl } = useThree();
+  const { gl, camera } = useThree();
 
   const position = latLngToVec3(lat, lng, 1.02);
   const labelPos = latLngToVec3(lat, lng, LABEL_RADIUS);
@@ -44,34 +48,52 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
     return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
   }, [reducedMotion, mountDelay]);
 
-  // Pulse animation when live data arrives (pulseSignal increments)
-  const pulseRef = useRef(0);
-  const pulseProgressRef = useRef(-1); // -1 = idle
+  // Live data pulse (signal increments trigger event pulse)
+  const pulseProgressRef = useRef(-1);
   useEffect(() => {
     if (reducedMotion || !pulseSignal) return;
     pulseProgressRef.current = 0;
   }, [pulseSignal]);
 
-  // Smooth hover scale + pulse via useFrame
+  // Heartbeat: offset per-point by position hash to desync points
+  const heartbeatOffsetRef = useRef((lat + lng + 100) * 0.01);
   const hoverScaleRef = useRef(1);
-  useFrame(() => {
+
+  useFrame(({ clock }) => {
     if (!visualRef.current) return;
+
+    // Depth fade: dot product of point normal vs camera direction
+    // Positive = facing camera (front), negative = back
+    _camDir.copy(camera.position).normalize();
+    const dot = position.clone().normalize().dot(_camDir);
+    const depthOpacity = reducedMotion ? 0.95 : THREE.MathUtils.lerp(0.2, 0.95, Math.max(0, dot));
 
     // Hover interpolation
     const hoverTarget = (hovered || selected) ? 1.8 : 1.0;
     hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * 0.14;
 
-    // Pulse: 0→1 over 300ms, drives scale 1→1.3→1
+    // Event pulse: 0→1 over 300ms, scale 1→1.3→1
     let pulseMultiplier = 1;
     if (pulseProgressRef.current >= 0) {
       pulseProgressRef.current = Math.min(pulseProgressRef.current + 0.016 / 0.3, 1);
-      // sine curve: 0→1→0 over full duration → scale peaks at 0.5
       pulseMultiplier = 1 + 0.3 * Math.sin(pulseProgressRef.current * Math.PI);
       if (pulseProgressRef.current >= 1) pulseProgressRef.current = -1;
     }
 
-    const s = mountScale * hoverScaleRef.current * pulseMultiplier;
+    // Heartbeat: gentle 1.0 → 1.08 → 1.0 at 2000ms period
+    const t = clock.getElapsedTime() + heartbeatOffsetRef.current;
+    const heartbeat = reducedMotion ? 1 : 1 + 0.08 * (0.5 + 0.5 * Math.sin((t / 2) * Math.PI * 2));
+
+    const s = mountScale * hoverScaleRef.current * pulseMultiplier * heartbeat;
     visualRef.current.scale.setScalar(s);
+
+    // Apply depth opacity to dot and halo
+    const mat = visualRef.current.material;
+    if (mat) mat.opacity = depthOpacity * (showLabel ? 1 : 0.95);
+
+    if (haloRef.current?.material) {
+      haloRef.current.material.opacity = depthOpacity * 0.15;
+    }
   });
 
   const handleOver = (e) => {
@@ -95,7 +117,7 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
 
   return (
     <>
-      {/* Invisible hitbox — large sphere capturing pointer events */}
+      {/* Invisible hitbox */}
       <mesh
         position={position}
         visible={false}
@@ -107,8 +129,8 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      {/* Halo ring around data point */}
-      <mesh position={position}>
+      {/* Halo ring */}
+      <mesh ref={haloRef} position={position}>
         <ringGeometry args={[VISUAL_RADIUS * 1.8, VISUAL_RADIUS * 2.2, 24]} />
         <meshBasicMaterial
           color="#8B1A1A"
