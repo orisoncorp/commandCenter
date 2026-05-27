@@ -1,9 +1,8 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import styles from './Globe.module.css';
-import { useThree } from '@react-three/fiber';
 
 const VISUAL_RADIUS = 0.022;
 const LABEL_RADIUS = 1.14;
@@ -29,7 +28,7 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
   const posNormal = useMemo(() => latLngToVec3(lat, lng, 1).normalize(), [lat, lng]);
 
   useEffect(() => {
-    if (reducedMotion) { setMountScale(1); return; }
+    if (reducedMotion) return;
     let raf;
     const timer = setTimeout(() => {
       const start = performance.now();
@@ -48,22 +47,58 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
   useEffect(() => {
     if (reducedMotion || !pulseSignal) return;
     pulseProgressRef.current = 0;
-  }, [pulseSignal]);
+  }, [pulseSignal, reducedMotion]);
 
   const heartbeatOffsetRef = useRef((lat + lng + 100) * 0.01);
   const hoverScaleRef = useRef(1);
   const hoveredRef = useRef(false);
-  hoveredRef.current = hovered;
 
-  // Track whether point is facing camera — used to suppress hover on back face
+  useEffect(() => {
+    hoveredRef.current = hovered;
+  }, [hovered]);
+
   const isFrontRef = useRef(true);
+  const lastFrontRef = useRef(true);
+  const worldPositionRef = useRef(new THREE.Vector3());
+  const worldNormalRef = useRef(new THREE.Vector3());
+  const viewDirectionRef = useRef(new THREE.Vector3());
+  const normalMatrixRef = useRef(new THREE.Matrix3());
+
+  const getAnchor = useCallback((event) => {
+    const source = event?.sourceEvent || event?.nativeEvent || event;
+    if (source?.clientX != null && source?.clientY != null) {
+      return { x: source.clientX, y: source.clientY };
+    }
+
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    if (rect) {
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
+    return null;
+  }, []);
 
   useFrame(({ clock }) => {
     if (!visualRef.current) return;
 
-    const dot = posNormal.dot(camera.position) / camera.position.length();
-    isFrontRef.current = dot > 0;
-    const depthOpacity = reducedMotion ? 0.95 : THREE.MathUtils.lerp(0.2, 0.95, Math.max(0, dot));
+    visualRef.current.getWorldPosition(worldPositionRef.current);
+    normalMatrixRef.current.getNormalMatrix(visualRef.current.matrixWorld);
+    worldNormalRef.current.copy(posNormal).applyMatrix3(normalMatrixRef.current).normalize();
+    viewDirectionRef.current.copy(camera.position).sub(worldPositionRef.current).normalize();
+
+    const facing = worldNormalRef.current.dot(viewDirectionRef.current);
+    const frontFacing = facing > 0.05;
+    isFrontRef.current = frontFacing;
+
+    if (frontFacing !== lastFrontRef.current) {
+      lastFrontRef.current = frontFacing;
+      if (!frontFacing && hoveredRef.current) {
+        document.body.style.cursor = '';
+        onHover(null);
+      }
+    }
+
+    const depthOpacity = reducedMotion ? 0.95 : THREE.MathUtils.lerp(0.2, 0.95, Math.max(0, facing));
 
     const hoverTarget = hoveredRef.current ? 1.8 : 1.0;
     hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * 0.14;
@@ -78,7 +113,8 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
     const t = clock.getElapsedTime() + heartbeatOffsetRef.current;
     const heartbeat = reducedMotion ? 1 : 1 + 0.08 * (0.5 + 0.5 * Math.sin((t / 2) * Math.PI * 2));
 
-    visualRef.current.scale.setScalar(mountScale * hoverScaleRef.current * pulseMultiplier * heartbeat);
+    const effectiveMountScale = reducedMotion ? 1 : mountScale;
+    visualRef.current.scale.setScalar(effectiveMountScale * hoverScaleRef.current * pulseMultiplier * heartbeat);
 
     const dotMat = visualRef.current.material;
     if (dotMat) {
@@ -92,13 +128,32 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
     }
   });
 
-  const handleEnter = () => {
-    // Suppress hover when point is on the back face of the globe
+  const handleEnter = (event) => {
     if (!isFrontRef.current) return;
-    if (data) onHover(data);
+    event.stopPropagation();
+    if (data) {
+      document.body.style.cursor = 'pointer';
+      onHover(data, getAnchor(event));
+    }
   };
 
-  const handleLeave = () => onHover(null);
+  const handleMove = (event) => {
+    if (!isFrontRef.current || !data) return;
+    event.stopPropagation();
+    onHover(data, getAnchor(event));
+  };
+
+  const handleLeave = (event) => {
+    event.stopPropagation();
+    document.body.style.cursor = '';
+    onHover(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoveredRef.current) document.body.style.cursor = '';
+    };
+  }, []);
 
   return (
     <>
@@ -114,15 +169,15 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
         <meshBasicMaterial color={hovered ? '#F06070' : '#8B1A1A'} transparent opacity={0.95} />
       </mesh>
 
-      {/* HTML button — bypasses Three.js raycaster, hover activates panel */}
-      <Html position={position.toArray()} zIndexRange={[5, 0]} center>
-        <button
-          className={styles.pointHitbox}
-          onMouseEnter={handleEnter}
-          onMouseLeave={handleLeave}
-          aria-label={empresa}
-        />
-      </Html>
+      <mesh
+        position={position}
+        onPointerOver={handleEnter}
+        onPointerMove={handleMove}
+        onPointerOut={handleLeave}
+      >
+        <sphereGeometry args={[VISUAL_RADIUS * 4.2, 16, 16]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
 
       {hovered && (
         <Html position={labelPos.toArray()} zIndexRange={[10, 0]} center>

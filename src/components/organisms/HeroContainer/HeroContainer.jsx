@@ -3,11 +3,13 @@ import styles from './HeroContainer.module.css';
 import DetailPanel from '../../../heroes/Globe/DetailPanel';
 
 export default function HeroContainer({ hero: HeroComponent }) {
-  const [hoveredContract, setHoveredContract] = useState(null);
+  const [hoverState, setHoverState] = useState(null);
 
-  const handleHover = useCallback((contract) => {
-    setHoveredContract(contract);
+  const handleHover = useCallback((contract, anchor = null) => {
+    setHoverState(contract ? { contract, anchor } : null);
   }, []);
+
+  const hoveredContract = hoverState?.contract || null;
 
   return (
     <div className={styles.hero}>
@@ -28,7 +30,7 @@ export default function HeroContainer({ hero: HeroComponent }) {
         </div>
       )}
 
-      {hoveredContract && <DetailPanel contract={hoveredContract} />}
+      {hoverState && <DetailPanel contract={hoverState.contract} anchor={hoverState.anchor} />}
     </div>
   );
 }

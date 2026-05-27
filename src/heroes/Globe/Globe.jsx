@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import GlobeMesh from './GlobeMesh';
 import DataPoint from './DataPoint';
@@ -17,6 +17,39 @@ const LOCATIONS = [
 ];
 
 const MOUNT_DELAYS = LOCATIONS.map((_, i) => calcStaggerDelay(i, 60));
+
+function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, rotating }) {
+  const groupRef = useRef();
+
+  useFrame(() => {
+    if (!groupRef.current) return;
+    if (!reducedMotion && rotating) {
+      groupRef.current.rotation.y += 0.002;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <GlobeMesh radius={1} autoRotate={false} rotating={false} />
+      <ConnectionLines />
+
+      {points.map((pt) => (
+        <DataPoint
+          key={pt.empresa}
+          lat={pt.lat}
+          lng={pt.lng}
+          empresa={pt.empresa}
+          data={pt.contract}
+          onHover={onHoverContract}
+          hovered={hoveredContract?.empresa === pt.empresa}
+          reducedMotion={reducedMotion}
+          mountDelay={pt.mountDelay}
+          pulseSignal={pt.pulseSignal}
+        />
+      ))}
+    </group>
+  );
+}
 
 export default function Globe({ onHoverContract, hoveredContract }) {
   const { table, events } = useStream();
@@ -37,18 +70,43 @@ export default function Globe({ onHoverContract, hoveredContract }) {
 
   const points = LOCATIONS.map((loc, i) => {
     const contract = table?.find(r => r.empresa === loc.empresa) || null;
-    return { ...loc, contract, mountDelay: MOUNT_DELAYS[i] };
+    return {
+      ...loc,
+      contract,
+      mountDelay: MOUNT_DELAYS[i],
+      pulseSignal: pulseSignals[loc.empresa] || 0,
+    };
   });
 
-  const handleDragStart = useCallback(() => {
+  const pauseRotation = useCallback(() => {
     if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current);
     setRotating(false);
   }, []);
 
-  const handleDragEnd = useCallback(() => {
+  const resumeRotation = useCallback(() => {
+    if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current);
     if (reducedMotion) return;
-    rotateResumeRef.current = setTimeout(() => setRotating(true), 1200);
+    rotateResumeRef.current = setTimeout(() => setRotating(true), 900);
   }, [reducedMotion]);
+
+  const handlePointHover = useCallback((contract, anchor) => {
+    if (contract) {
+      pauseRotation();
+      onHoverContract(contract, anchor);
+      return;
+    }
+
+    onHoverContract(null);
+    resumeRotation();
+  }, [onHoverContract, pauseRotation, resumeRotation]);
+
+  const handleDragStart = useCallback(() => {
+    pauseRotation();
+  }, [pauseRotation]);
+
+  const handleDragEnd = useCallback(() => {
+    resumeRotation();
+  }, [resumeRotation]);
 
   useEffect(() => {
     return () => { if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current); };
@@ -66,23 +124,13 @@ export default function Globe({ onHoverContract, hoveredContract }) {
       <pointLight position={[-3, -2, -3]} intensity={0.12} color="#8B1A1A" />
       <directionalLight position={[-3, 2, -5]} intensity={0.3} color="#e8e6e1" />
 
-      <GlobeMesh radius={1} autoRotate={!reducedMotion} rotating={rotating} />
-      <ConnectionLines />
-
-      {points.map((pt) => (
-        <DataPoint
-          key={pt.empresa}
-          lat={pt.lat}
-          lng={pt.lng}
-          empresa={pt.empresa}
-          data={pt.contract}
-          onHover={onHoverContract}
-          hovered={hoveredContract?.empresa === pt.empresa}
-          reducedMotion={reducedMotion}
-          mountDelay={pt.mountDelay}
-          pulseSignal={pulseSignals[pt.empresa] || 0}
-        />
-      ))}
+      <GlobeScene
+        points={points}
+        hoveredContract={hoveredContract}
+        onHoverContract={handlePointHover}
+        reducedMotion={reducedMotion}
+        rotating={rotating}
+      />
 
       <OrbitControls
         enableZoom={false}

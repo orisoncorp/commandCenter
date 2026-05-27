@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -27,31 +27,41 @@ function buildArc(latA, lngA, latB, lngB, segments = 48) {
 
 function ArcLine({ conn, phaseOffset }) {
   const matRef = useRef();
+  const lineRef = useRef();
 
-  const lineObject = useMemo(() => {
+  const geometry = useMemo(() => {
     const points = buildArc(conn.a.lat, conn.a.lng, conn.b.lat, conn.b.lng);
-    const geo = new THREE.BufferGeometry().setFromPoints(points);
-    const mat = new THREE.LineDashedMaterial({
-      color: '#8B1A1A',
-      transparent: true,
-      opacity: 0.25,
-      linewidth: 1.5,
-      dashSize: 0.04,
-      gapSize: 0.06,
-      depthWrite: false,
-    });
-    const line = new THREE.Line(geo, mat);
-    line.computeLineDistances();
-    return line;
+    return new THREE.BufferGeometry().setFromPoints(points);
   }, [conn]);
 
+  useLayoutEffect(() => {
+    lineRef.current?.computeLineDistances();
+  }, [geometry]);
+
+  useEffect(() => {
+    return () => geometry.dispose();
+  }, [geometry]);
+
   useFrame(({ clock }) => {
-    if (!lineObject.material) return;
+    if (!matRef.current) return;
     const t = ((clock.getElapsedTime() * 0.167) + phaseOffset) % 1;
-    lineObject.material.dashOffset = -t;
+    matRef.current.dashOffset = -t;
   });
 
-  return <primitive object={lineObject} />;
+  return (
+    <line ref={lineRef} geometry={geometry}>
+      <lineDashedMaterial
+        ref={matRef}
+        color="#8B1A1A"
+        transparent
+        opacity={0.25}
+        linewidth={1.5}
+        dashSize={0.04}
+        gapSize={0.06}
+        depthWrite={false}
+      />
+    </line>
+  );
 }
 
 export default function ConnectionLines() {
