@@ -7,6 +7,11 @@
   background: var(--color-panel-bg);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  overflow: visible;
+}
+
+.scroll {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -23,12 +28,12 @@
   content: '';
   position: absolute;
   top: 0;
-  right: -30px;
-  width: 30px;
+  right: -48px;
+  width: 48px;
   height: 100%;
   background: linear-gradient(to right, rgba(13,13,15,0.85), transparent);
   pointer-events: none;
-  z-index: 1;
+  z-index: 11;
 }
 
 .right {
@@ -40,12 +45,12 @@
   content: '';
   position: absolute;
   top: 0;
-  left: -30px;
-  width: 30px;
+  left: -48px;
+  width: 48px;
   height: 100%;
   background: linear-gradient(to left, rgba(13,13,15,0.85), transparent);
   pointer-events: none;
-  z-index: 1;
+  z-index: 11;
 }
 
 @media (max-width: 900px) {
@@ -56,6 +61,14 @@
     left: auto;
     right: auto;
     width: 100%;
+    overflow: hidden;
+  }
+
+  .panel::after {
+    display: none;
+  }
+
+  .scroll {
     overflow-y: visible;
   }
 }

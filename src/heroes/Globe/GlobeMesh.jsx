@@ -41,7 +41,7 @@ export default function GlobeMesh({ radius = 1, autoRotate = true, rotating }) {
         <meshBasicMaterial
           color="#8B1A1A"
           transparent
-          opacity={0.015}
+          opacity={0.04}
           side={THREE.BackSide}
           depthWrite={false}
         />

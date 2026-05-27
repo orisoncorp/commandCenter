@@ -34,8 +34,8 @@ function ArcLine({ conn, phaseOffset }) {
     const mat = new THREE.LineDashedMaterial({
       color: '#8B1A1A',
       transparent: true,
-      opacity: 0.12,
-      linewidth: 1,
+      opacity: 0.25,
+      linewidth: 1.5,
       dashSize: 0.04,
       gapSize: 0.06,
       depthWrite: false,
