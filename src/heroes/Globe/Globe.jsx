@@ -18,7 +18,7 @@ const LOCATIONS = [
 
 const MOUNT_DELAYS = LOCATIONS.map((_, i) => calcStaggerDelay(i, 60));
 
-export default function Globe({ onSelectContract, selectedContract }) {
+export default function Globe({ onHoverContract, hoveredContract }) {
   const { table, events } = useStream();
   const [rotating, setRotating] = useState(true);
   const [pulseSignals, setPulseSignals] = useState({});
@@ -76,8 +76,8 @@ export default function Globe({ onSelectContract, selectedContract }) {
           lng={pt.lng}
           empresa={pt.empresa}
           data={pt.contract}
-          onSelect={onSelectContract}
-          selected={selectedContract?.empresa === pt.empresa}
+          onHover={onHoverContract}
+          hovered={hoveredContract?.empresa === pt.empresa}
           reducedMotion={reducedMotion}
           mountDelay={pt.mountDelay}
           pulseSignal={pulseSignals[pt.empresa] || 0}

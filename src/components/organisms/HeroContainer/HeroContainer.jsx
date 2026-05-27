@@ -3,20 +3,16 @@ import styles from './HeroContainer.module.css';
 import DetailPanel from '../../../heroes/Globe/DetailPanel';
 
 export default function HeroContainer({ hero: HeroComponent }) {
-  const [selectedContract, setSelectedContract] = useState(null);
+  const [hoveredContract, setHoveredContract] = useState(null);
 
-  const handleSelect = useCallback((contract) => {
-    setSelectedContract(prev =>
-      prev?.contrato === contract?.contrato ? null : contract
-    );
+  const handleHover = useCallback((contract) => {
+    setHoveredContract(contract);
   }, []);
-
-  const handleClose = useCallback(() => setSelectedContract(null), []);
 
   return (
     <div className={styles.hero}>
       {HeroComponent ? (
-        <HeroComponent onSelectContract={handleSelect} selectedContract={selectedContract} />
+        <HeroComponent onHoverContract={handleHover} hoveredContract={hoveredContract} />
       ) : (
         <div className={styles.placeholder}>
           <svg className={styles.wireframe} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -32,9 +28,7 @@ export default function HeroContainer({ hero: HeroComponent }) {
         </div>
       )}
 
-      {selectedContract && (
-        <DetailPanel contract={selectedContract} onClose={handleClose} />
-      )}
+      {hoveredContract && <DetailPanel contract={hoveredContract} />}
     </div>
   );
 }

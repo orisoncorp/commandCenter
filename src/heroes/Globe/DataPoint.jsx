@@ -1,8 +1,9 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import styles from './Globe.module.css';
+import { useThree } from '@react-three/fiber';
 
 const VISUAL_RADIUS = 0.022;
 const LABEL_RADIUS = 1.14;
@@ -17,10 +18,9 @@ function latLngToVec3(lat, lng, r) {
   );
 }
 
-export default function DataPoint({ lat, lng, empresa, data, onSelect, selected, reducedMotion, mountDelay = 0, pulseSignal }) {
+export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, reducedMotion, mountDelay = 0, pulseSignal }) {
   const visualRef = useRef();
   const haloRef = useRef();
-  const [hovered, setHovered] = useState(false);
   const [mountScale, setMountScale] = useState(reducedMotion ? 1 : 0);
   const { camera } = useThree();
 
@@ -53,17 +53,19 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
   const heartbeatOffsetRef = useRef((lat + lng + 100) * 0.01);
   const hoverScaleRef = useRef(1);
   const hoveredRef = useRef(false);
-  const selectedRef = useRef(false);
   hoveredRef.current = hovered;
-  selectedRef.current = selected;
+
+  // Track whether point is facing camera — used to suppress hover on back face
+  const isFrontRef = useRef(true);
 
   useFrame(({ clock }) => {
     if (!visualRef.current) return;
 
     const dot = posNormal.dot(camera.position) / camera.position.length();
+    isFrontRef.current = dot > 0;
     const depthOpacity = reducedMotion ? 0.95 : THREE.MathUtils.lerp(0.2, 0.95, Math.max(0, dot));
 
-    const hoverTarget = (hoveredRef.current || selectedRef.current) ? 1.8 : 1.0;
+    const hoverTarget = hoveredRef.current ? 1.8 : 1.0;
     hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * 0.14;
 
     let pulseMultiplier = 1;
@@ -90,7 +92,13 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
     }
   });
 
-  const showLabel = hovered || selected;
+  const handleEnter = () => {
+    // Suppress hover when point is on the back face of the globe
+    if (!isFrontRef.current) return;
+    if (data) onHover(data);
+  };
+
+  const handleLeave = () => onHover(null);
 
   return (
     <>
@@ -103,21 +111,20 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
       {/* Visual dot */}
       <mesh ref={visualRef} position={position}>
         <sphereGeometry args={[VISUAL_RADIUS, 8, 8]} />
-        <meshBasicMaterial color={showLabel ? '#F06070' : '#8B1A1A'} transparent opacity={0.95} />
+        <meshBasicMaterial color={hovered ? '#F06070' : '#8B1A1A'} transparent opacity={0.95} />
       </mesh>
 
-      {/* HTML hitbox — bypasses Three.js raycaster entirely, no occlusion issues */}
+      {/* HTML button — bypasses Three.js raycaster, hover activates panel */}
       <Html position={position.toArray()} zIndexRange={[5, 0]} center>
         <button
           className={styles.pointHitbox}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          onClick={() => { if (data) onSelect(data); }}
+          onMouseEnter={handleEnter}
+          onMouseLeave={handleLeave}
           aria-label={empresa}
         />
       </Html>
 
-      {showLabel && (
+      {hovered && (
         <Html position={labelPos.toArray()} zIndexRange={[10, 0]} center>
           <div className={styles.pointLabel}>{empresa}</div>
         </Html>
