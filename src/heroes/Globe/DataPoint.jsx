@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import styles from './Globe.module.css';
 
 const VISUAL_RADIUS = 0.022;
-const HITBOX_RADIUS = 0.15;
+const HITBOX_RADIUS = 0.22;
 const LABEL_RADIUS = 1.14;
 
 function latLngToVec3(lat, lng, r) {
@@ -120,16 +120,16 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
 
   return (
     <>
-      {/* Invisible hitbox */}
+      {/* Transparent hitbox — visible:true so raycaster processes it */}
       <mesh
         position={position}
-        visible={false}
         onPointerOver={handleOver}
         onPointerOut={handleOut}
         onClick={handleClick}
+        renderOrder={-1}
       >
         <sphereGeometry args={[HITBOX_RADIUS, 8, 8]} />
-        <meshBasicMaterial transparent opacity={0} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
       {/* Halo ring */}
