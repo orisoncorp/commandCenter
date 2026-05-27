@@ -43,7 +43,7 @@ export default function DetailPanel({ contract, onClose }) {
         className={styles.detailPanel}
         style={{
           opacity: visible ? 1 : 0,
-          transform: visible ? 'scale(1)' : 'scale(0.96)',
+          transform: `translate(-50%, -50%) scale(${visible ? 1 : 0.96})`,
           transition: 'opacity 400ms cubic-bezier(0.16, 1, 0.3, 1), transform 400ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         onClick={e => e.stopPropagation()}
