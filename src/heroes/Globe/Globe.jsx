@@ -58,8 +58,8 @@ export default function Globe({ onSelectContract, selectedContract }) {
     <Canvas
       className={styles.canvas}
       camera={{ position: [0, 0, 2.7], fov: 40, near: 0.1, far: 100 }}
-      gl={{ antialias: true, alpha: true }}
-      style={{ background: 'transparent' }}
+      gl={{ antialias: true, alpha: false }}
+      onCreated={({ gl }) => gl.setClearColor('#0a0a0a', 1)}
     >
       <ambientLight intensity={0.03} />
       <pointLight position={[3, 3, 3]} intensity={0.5} color="#ffffff" />
