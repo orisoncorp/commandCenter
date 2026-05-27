@@ -4,6 +4,18 @@
   display: block;
 }
 
+/* Invisible HTML button — replaces 3D raycaster hitbox entirely */
+.pointHitbox {
+  width: 48px;
+  height: 48px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* HTML label overlays positioned via drei Html component */
 .pointLabel {
   font-family: var(--font-body);

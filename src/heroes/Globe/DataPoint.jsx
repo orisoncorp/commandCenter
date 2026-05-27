@@ -5,7 +5,6 @@ import * as THREE from 'three';
 import styles from './Globe.module.css';
 
 const VISUAL_RADIUS = 0.022;
-const HITBOX_RADIUS = 0.22;
 const LABEL_RADIUS = 1.14;
 
 function latLngToVec3(lat, lng, r) {
@@ -23,15 +22,12 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
   const haloRef = useRef();
   const [hovered, setHovered] = useState(false);
   const [mountScale, setMountScale] = useState(reducedMotion ? 1 : 0);
-  const { gl, camera } = useThree();
+  const { camera } = useThree();
 
-  // Pre-compute positions — stable references, never re-allocated
   const position = useMemo(() => latLngToVec3(lat, lng, 1.02), [lat, lng]);
   const labelPos = useMemo(() => latLngToVec3(lat, lng, LABEL_RADIUS), [lat, lng]);
-  // Unit normal of the point on sphere surface — used for depth dot product
   const posNormal = useMemo(() => latLngToVec3(lat, lng, 1).normalize(), [lat, lng]);
 
-  // Mount animation: scale 0 → 1 with stagger delay
   useEffect(() => {
     if (reducedMotion) { setMountScale(1); return; }
     let raf;
@@ -48,7 +44,6 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
     return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
   }, [reducedMotion, mountDelay]);
 
-  // Live data pulse
   const pulseProgressRef = useRef(-1);
   useEffect(() => {
     if (reducedMotion || !pulseSignal) return;
@@ -57,7 +52,6 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
 
   const heartbeatOffsetRef = useRef((lat + lng + 100) * 0.01);
   const hoverScaleRef = useRef(1);
-  // Stable ref for hovered/selected — avoids stale closure in useFrame
   const hoveredRef = useRef(false);
   const selectedRef = useRef(false);
   hoveredRef.current = hovered;
@@ -66,15 +60,12 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
   useFrame(({ clock }) => {
     if (!visualRef.current) return;
 
-    // Depth fade: dot product — no allocation, posNormal is pre-computed
     const dot = posNormal.dot(camera.position) / camera.position.length();
     const depthOpacity = reducedMotion ? 0.95 : THREE.MathUtils.lerp(0.2, 0.95, Math.max(0, dot));
 
-    // Hover interpolation
     const hoverTarget = (hoveredRef.current || selectedRef.current) ? 1.8 : 1.0;
     hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * 0.14;
 
-    // Event pulse: 0→1 over 300ms, scale 1→1.3→1
     let pulseMultiplier = 1;
     if (pulseProgressRef.current >= 0) {
       pulseProgressRef.current = Math.min(pulseProgressRef.current + 0.016 / 0.3, 1);
@@ -82,94 +73,53 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
       if (pulseProgressRef.current >= 1) pulseProgressRef.current = -1;
     }
 
-    // Heartbeat: 1.0 → 1.08 → 1.0 at 2000ms period
     const t = clock.getElapsedTime() + heartbeatOffsetRef.current;
     const heartbeat = reducedMotion ? 1 : 1 + 0.08 * (0.5 + 0.5 * Math.sin((t / 2) * Math.PI * 2));
 
     visualRef.current.scale.setScalar(mountScale * hoverScaleRef.current * pulseMultiplier * heartbeat);
 
-    // Depth opacity — only set needsUpdate when value actually changed
     const dotMat = visualRef.current.material;
     if (dotMat) {
       const next = depthOpacity * 0.95;
-      if (Math.abs(dotMat.opacity - next) > 0.001) {
-        dotMat.opacity = next;
-        dotMat.needsUpdate = true;
-      }
+      if (Math.abs(dotMat.opacity - next) > 0.001) { dotMat.opacity = next; dotMat.needsUpdate = true; }
     }
     const haloMat = haloRef.current?.material;
     if (haloMat) {
       const next = depthOpacity * 0.15;
-      if (Math.abs(haloMat.opacity - next) > 0.001) {
-        haloMat.opacity = next;
-        haloMat.needsUpdate = true;
-      }
+      if (Math.abs(haloMat.opacity - next) > 0.001) { haloMat.opacity = next; haloMat.needsUpdate = true; }
     }
   });
-
-  const handleOver = (e) => {
-    e.stopPropagation();
-    setHovered(true);
-    gl.domElement.style.cursor = 'pointer';
-  };
-
-  const handleOut = (e) => {
-    e.stopPropagation();
-    setHovered(false);
-    gl.domElement.style.cursor = 'auto';
-  };
-
-  const handleClick = (e) => {
-    e.stopPropagation();
-    if (data) onSelect(data);
-  };
 
   const showLabel = hovered || selected;
 
   return (
     <>
-      {/* Transparent hitbox — visible:true so raycaster processes it */}
-      <mesh
-        position={position}
-        onPointerOver={handleOver}
-        onPointerOut={handleOut}
-        onClick={handleClick}
-        renderOrder={-1}
-      >
-        <sphereGeometry args={[HITBOX_RADIUS, 8, 8]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-
       {/* Halo ring */}
       <mesh ref={haloRef} position={position}>
         <ringGeometry args={[VISUAL_RADIUS * 1.8, VISUAL_RADIUS * 2.2, 24]} />
-        <meshBasicMaterial
-          color="#8B1A1A"
-          transparent
-          opacity={0.15}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-        />
+        <meshBasicMaterial color="#8B1A1A" transparent opacity={0.15} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Visual dot */}
       <mesh ref={visualRef} position={position}>
         <sphereGeometry args={[VISUAL_RADIUS, 8, 8]} />
-        <meshBasicMaterial
-          color={showLabel ? '#F06070' : '#8B1A1A'}
-          transparent
-          opacity={0.95}
-        />
+        <meshBasicMaterial color={showLabel ? '#F06070' : '#8B1A1A'} transparent opacity={0.95} />
       </mesh>
+
+      {/* HTML hitbox — bypasses Three.js raycaster entirely, no occlusion issues */}
+      <Html position={position.toArray()} zIndexRange={[5, 0]} center>
+        <button
+          className={styles.pointHitbox}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          onClick={() => { if (data) onSelect(data); }}
+          aria-label={empresa}
+        />
+      </Html>
 
       {showLabel && (
         <Html position={labelPos.toArray()} zIndexRange={[10, 0]} center>
-          <div
-            className={styles.pointLabel}
-            style={{ opacity: 1, transition: 'opacity 150ms cubic-bezier(0.25, 0.1, 0.25, 1)' }}
-          >
-            {empresa}
-          </div>
+          <div className={styles.pointLabel}>{empresa}</div>
         </Html>
       )}
     </>
