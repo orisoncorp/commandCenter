@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -18,9 +18,6 @@ function latLngToVec3(lat, lng, r) {
   );
 }
 
-// Shared vec3 for dot product — avoids per-frame allocation
-const _camDir = new THREE.Vector3();
-
 export default function DataPoint({ lat, lng, empresa, data, onSelect, selected, reducedMotion, mountDelay = 0, pulseSignal }) {
   const visualRef = useRef();
   const haloRef = useRef();
@@ -28,8 +25,11 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
   const [mountScale, setMountScale] = useState(reducedMotion ? 1 : 0);
   const { gl, camera } = useThree();
 
-  const position = latLngToVec3(lat, lng, 1.02);
-  const labelPos = latLngToVec3(lat, lng, LABEL_RADIUS);
+  // Pre-compute positions — stable references, never re-allocated
+  const position = useMemo(() => latLngToVec3(lat, lng, 1.02), [lat, lng]);
+  const labelPos = useMemo(() => latLngToVec3(lat, lng, LABEL_RADIUS), [lat, lng]);
+  // Unit normal of the point on sphere surface — used for depth dot product
+  const posNormal = useMemo(() => latLngToVec3(lat, lng, 1).normalize(), [lat, lng]);
 
   // Mount animation: scale 0 → 1 with stagger delay
   useEffect(() => {
@@ -48,28 +48,30 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
     return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
   }, [reducedMotion, mountDelay]);
 
-  // Live data pulse (signal increments trigger event pulse)
+  // Live data pulse
   const pulseProgressRef = useRef(-1);
   useEffect(() => {
     if (reducedMotion || !pulseSignal) return;
     pulseProgressRef.current = 0;
   }, [pulseSignal]);
 
-  // Heartbeat: offset per-point by position hash to desync points
   const heartbeatOffsetRef = useRef((lat + lng + 100) * 0.01);
   const hoverScaleRef = useRef(1);
+  // Stable ref for hovered/selected — avoids stale closure in useFrame
+  const hoveredRef = useRef(false);
+  const selectedRef = useRef(false);
+  hoveredRef.current = hovered;
+  selectedRef.current = selected;
 
   useFrame(({ clock }) => {
     if (!visualRef.current) return;
 
-    // Depth fade: dot product of point normal vs camera direction
-    // Positive = facing camera (front), negative = back
-    _camDir.copy(camera.position).normalize();
-    const dot = position.clone().normalize().dot(_camDir);
+    // Depth fade: dot product — no allocation, posNormal is pre-computed
+    const dot = posNormal.dot(camera.position) / camera.position.length();
     const depthOpacity = reducedMotion ? 0.95 : THREE.MathUtils.lerp(0.2, 0.95, Math.max(0, dot));
 
     // Hover interpolation
-    const hoverTarget = (hovered || selected) ? 1.8 : 1.0;
+    const hoverTarget = (hoveredRef.current || selectedRef.current) ? 1.8 : 1.0;
     hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * 0.14;
 
     // Event pulse: 0→1 over 300ms, scale 1→1.3→1
@@ -80,19 +82,20 @@ export default function DataPoint({ lat, lng, empresa, data, onSelect, selected,
       if (pulseProgressRef.current >= 1) pulseProgressRef.current = -1;
     }
 
-    // Heartbeat: gentle 1.0 → 1.08 → 1.0 at 2000ms period
+    // Heartbeat: 1.0 → 1.08 → 1.0 at 2000ms period
     const t = clock.getElapsedTime() + heartbeatOffsetRef.current;
     const heartbeat = reducedMotion ? 1 : 1 + 0.08 * (0.5 + 0.5 * Math.sin((t / 2) * Math.PI * 2));
 
-    const s = mountScale * hoverScaleRef.current * pulseMultiplier * heartbeat;
-    visualRef.current.scale.setScalar(s);
+    visualRef.current.scale.setScalar(mountScale * hoverScaleRef.current * pulseMultiplier * heartbeat);
 
-    // Apply depth opacity to dot and halo
-    const mat = visualRef.current.material;
-    if (mat) mat.opacity = depthOpacity * (showLabel ? 1 : 0.95);
-
+    // Depth opacity — flag needsUpdate so Three.js re-uploads the material
+    if (visualRef.current.material) {
+      visualRef.current.material.opacity = depthOpacity * 0.95;
+      visualRef.current.material.needsUpdate = true;
+    }
     if (haloRef.current?.material) {
       haloRef.current.material.opacity = depthOpacity * 0.15;
+      haloRef.current.material.needsUpdate = true;
     }
   });
 
