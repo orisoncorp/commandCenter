@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import styles from './HeroContainer.module.css';
-import DetailPanel from '../../../heroes/Globe/DetailPanel';
+import DetailPanel from '../../../heroes/shared/DetailPanel';
 
 export default function HeroContainer({ hero: HeroComponent }) {
   const [hoverState, setHoverState] = useState(null);

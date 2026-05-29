@@ -11,13 +11,24 @@ import ChartBar from '../../molecules/ChartBar/ChartBar';
 import DataTable from '../../molecules/DataTable/DataTable';
 import EventFeed from '../../molecules/EventFeed/EventFeed';
 import InsightCard from '../../molecules/InsightCard/InsightCard';
-import { lazy, Suspense, useCallback, useMemo, memo } from 'react';
+import HeroToggle from '../../organisms/HeroToggle/HeroToggle';
+import { lazy, Suspense, useCallback, useMemo, memo, useState } from 'react';
 import { useData } from '../../../data/DataProvider';
 
 const Globe = lazy(() => import('../../../heroes/Globe/Globe'));
+const NetworkGraph = lazy(() => import('../../../heroes/NetworkGraph/NetworkGraph'));
+const ParticleStream = lazy(() => import('../../../heroes/ParticleStream/ParticleStream'));
+const DataCube = lazy(() => import('../../../heroes/DataCube/DataCube'));
 
-const HERO_MAP = { globe: Globe };
-const GLOBE_FALLBACK = <div style={{ position: 'absolute', inset: 0, background: '#0a0a0a' }} />;
+export const HERO_MAP = {
+  globe: Globe,
+  network: NetworkGraph,
+  particles: ParticleStream,
+  cube: DataCube,
+};
+
+const HERO_KEYS = Object.keys(HERO_MAP);
+const HERO_FALLBACK = <div style={{ position: 'absolute', inset: 0, background: '#0a0a0a' }} />;
 
 const WIDGET_MAP = {
   'kpi-simple': KpiSimple,
@@ -87,13 +98,14 @@ function getPipelineChart(data) {
 
 export default function CommandCenter({ config }) {
   const { data, table, events, insights, streaming, startStream, stopStream } = useData();
+  const [activeHero, setActiveHero] = useState(config?.hero || 'globe');
 
   const headerKpis = useMemo(() => buildHeaderKpis(config, data), [config, data]);
   const pipelineChart = useMemo(() => getPipelineChart(data), [data]);
   const leftWidgets = useMemo(() => config?.panels?.left || [], [config]);
   const rightWidgets = useMemo(() => config?.panels?.right || [], [config]);
   const bottomConfig = config?.bottom;
-  const heroComponent = useMemo(() => HERO_MAP[config?.hero], [config]);
+  const heroComponent = useMemo(() => HERO_MAP[activeHero] || HERO_MAP.globe, [activeHero]);
 
   const handleToggleStream = useCallback(() => {
     streaming ? stopStream() : startStream();
@@ -106,7 +118,9 @@ export default function CommandCenter({ config }) {
         kpis={headerKpis}
         streaming={streaming}
         onToggleStream={handleToggleStream}
-      />
+      >
+        <HeroToggle heroes={HERO_KEYS} active={activeHero} onChange={setActiveHero} />
+      </HeaderBar>
 
       <div className={styles.body}>
         <Panel position="left">
@@ -116,7 +130,7 @@ export default function CommandCenter({ config }) {
           <ChartBar label="PIPELINE MENSAL" data={pipelineChart} />
         </Panel>
 
-        <Suspense fallback={GLOBE_FALLBACK}>
+        <Suspense fallback={HERO_FALLBACK}>
           <HeroContainer hero={heroComponent} />
         </Suspense>
 
