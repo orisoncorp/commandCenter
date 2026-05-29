@@ -7,222 +7,248 @@ import styles from './ParticleStream.module.css';
 import { useStream } from '../../data/DataProvider';
 import { calcStaggerDelay } from '../../motion/constants';
 
-// ─── constants ────────────────────────────────────────────────────────────────
+// ─── ribbon definitions ───────────────────────────────────────────────────────
+// Each ribbon is a horizontal streamline at a fixed (y_base, z) with sine undulation.
+// depth: 0=front, 1=back — drives opacity and size scaling.
 
-const PARTICLE_COUNT   = 420;   // denser than before — fills the helix nicely
-const CRIMSON_FRACTION = 0.08;  // ~34 fast/accent particles
-const HELIX_RADIUS     = 0.72;  // XZ radius of the spiral
-const HELIX_HEIGHT     = 2.2;   // total vertical travel (bottom → top)
-const HELIX_TURNS      = 3.5;   // number of full rotations along the height
-const BASE_SPEED       = 0.055; // parameter units per second (upward advance)
+const RIBBONS = [
+  { y: -0.70, z:  0.30, phase: 0.00, freq: 0.55, amp: 0.10, speed: 1.00, density: 1.3, depth: 0.15 },
+  { y: -0.28, z:  0.10, phase: 1.10, freq: 0.42, amp: 0.12, speed: 0.88, density: 1.6, depth: 0.05 },
+  { y:  0.08, z: -0.20, phase: 2.30, freq: 0.60, amp: 0.09, speed: 1.12, density: 1.4, depth: 0.30 },
+  { y:  0.40, z:  0.40, phase: 0.70, freq: 0.38, amp: 0.14, speed: 0.75, density: 1.0, depth: 0.10 },
+  { y:  0.68, z: -0.40, phase: 1.80, freq: 0.50, amp: 0.08, speed: 0.95, density: 0.8, depth: 0.45 },
+  { y: -0.50, z: -0.55, phase: 3.00, freq: 0.65, amp: 0.11, speed: 1.20, density: 0.6, depth: 0.60 },
+];
 
-// Pre-computed seeded randoms — called once, outside render
-function seededRandom(seed) {
-  let s = seed;
-  return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
-}
-const rand = seededRandom(42);
+const STREAM_WIDTH  = 5.2;  // X extent: -2.6 to +2.6
+const EDGE_FADE_W   = 0.6;  // fade region at each edge
+const BASE_SPEED    = 0.95; // X units per second for base ribbon
 
-// ─── helix path ───────────────────────────────────────────────────────────────
+// Fraction of particles per ribbon based on density weight
+const TOTAL_DENSITY = RIBBONS.reduce((s, r) => s + r.density, 0);
 
-// t ∈ [0, 1) maps linearly along the ascending helix
-function helixPos(t) {
-  const angle = t * Math.PI * 2 * HELIX_TURNS;
-  const y     = (t - 0.5) * HELIX_HEIGHT;
-  return [
-    HELIX_RADIUS * Math.cos(angle),
-    y,
-    HELIX_RADIUS * Math.sin(angle),
-  ];
-}
+// ─── particle config ──────────────────────────────────────────────────────────
 
-// Tangent direction at t (normalized) — used for depth-fade direction
-function helixTangent(t) {
-  const dt  = 0.001;
-  const [x0, y0, z0] = helixPos(t);
-  const [x1, y1, z1] = helixPos((t + dt) % 1);
-  const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
-  return [(x1 - x0) / len, (y1 - y0) / len, (z1 - z0) / len];
-}
+const PARTICLE_COUNT   = 480;
+const CRIMSON_FRACTION = 0.09;  // ~43 crimson particles
+const TRAIL_STEPS      = 4;
 
 // ─── anchor data ──────────────────────────────────────────────────────────────
+// Anchors sit on specific ribbons at specific X positions.
+// Spread across ribbons and horizontal positions for legibility.
 
-// Distribute anchor points evenly along the helix
 const ANCHOR_DATA = [
-  { id: 'acme',    empresa: 'Acme Corp',       t: 0.08 },
-  { id: 'beta',    empresa: 'Beta Industries',  t: 0.28 },
-  { id: 'gamma',   empresa: 'Gamma SA',         t: 0.48 },
-  { id: 'delta',   empresa: 'Delta Corp',       t: 0.68 },
-  { id: 'epsilon', empresa: 'Epsilon Ltda',     t: 0.88 },
+  { id: 'acme',    empresa: 'Acme Corp',      ribbonIdx: 1, xPos: -1.4 },
+  { id: 'beta',    empresa: 'Beta Industries', ribbonIdx: 4, xPos:  0.2 },
+  { id: 'gamma',   empresa: 'Gamma SA',        ribbonIdx: 0, xPos:  1.0 },
+  { id: 'delta',   empresa: 'Delta Corp',      ribbonIdx: 3, xPos: -0.4 },
+  { id: 'epsilon', empresa: 'Epsilon Ltda',    ribbonIdx: 2, xPos:  1.8 },
 ];
 
 const MOUNT_DELAYS = ANCHOR_DATA.map((_, i) => calcStaggerDelay(i, 80));
 
-// Pre-compute anchor world positions (static)
-const ANCHOR_POSITIONS = ANCHOR_DATA.map(a => helixPos(a.t));
+// Anchor world position: y/z interpolated from ribbon + sine at t=0
+function anchorWorldPos(anchor) {
+  const r = RIBBONS[anchor.ribbonIdx];
+  // Use the ribbon's sine at their specific X mapped to t
+  const x = anchor.xPos;
+  const t = (x + STREAM_WIDTH / 2) / STREAM_WIDTH; // 0..1 across stream
+  const y = r.y + r.amp * Math.sin(t * Math.PI * 4 + r.phase);
+  return [x, y, r.z];
+}
+
+const ANCHOR_POSITIONS = ANCHOR_DATA.map(anchorWorldPos);
+
+// ─── seeded deterministic random (avoids Math.random drift on re-renders) ─────
+function makeRand(seed) {
+  let s = seed;
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
 
 // ─── particle field ───────────────────────────────────────────────────────────
 
-function ParticleField({ reducedMotion, anchors, hoveredId }) {
-  const pointsRef       = useRef();
-  const trailPointsRef  = useRef();
+function ParticleField({ reducedMotion, hoveredId }) {
+  const mainRef  = useRef();
+  const trailRef = useRef();
 
-  // Pre-allocate all buffers — never reallocated
+  // Assign ribbon index to each particle, respecting density weights
+  const ribbonAssign = useMemo(() => {
+    const r = new Uint8Array(PARTICLE_COUNT);
+    let idx = 0;
+    for (let ri = 0; ri < RIBBONS.length; ri++) {
+      const count = ri < RIBBONS.length - 1
+        ? Math.round(PARTICLE_COUNT * RIBBONS[ri].density / TOTAL_DENSITY)
+        : PARTICLE_COUNT - idx;
+      for (let j = 0; j < count && idx < PARTICLE_COUNT; j++, idx++) {
+        r[idx] = ri;
+      }
+    }
+    return r;
+  }, []);
+
+  // Pre-allocate all particle buffers — never reallocated
   const bufs = useMemo(() => {
-    const positions   = new Float32Array(PARTICLE_COUNT * 3);
-    const colors      = new Float32Array(PARTICLE_COUNT * 3);
-    const sizes       = new Float32Array(PARTICLE_COUNT);
-    const offsets     = new Float32Array(PARTICLE_COUNT);
-    const speeds      = new Float32Array(PARTICLE_COUNT);
-    const radii       = new Float32Array(PARTICLE_COUNT); // per-particle radius variation
-    const isCrimsonBuf = new Uint8Array(PARTICLE_COUNT);
+    const rand = makeRand(7);
 
-    const crimsonColor  = new THREE.Color('#8B1A1A');
-    const accentColor   = new THREE.Color('#F06070');
-    const offwhiteColor = new THREE.Color('#e8e6e1');
+    const positions  = new Float32Array(PARTICLE_COUNT * 3);
+    const colors     = new Float32Array(PARTICLE_COUNT * 3);
+    const sizes      = new Float32Array(PARTICLE_COUNT);
+    const xOffsets   = new Float32Array(PARTICLE_COUNT); // initial X position [0..STREAM_WIDTH)
+    const isCrimson  = new Uint8Array(PARTICLE_COUNT);
+
+    const offwhite = new THREE.Color('#e8e6e1');
+    const crimson  = new THREE.Color('#F06070');
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      offsets[i]     = i / PARTICLE_COUNT;           // evenly distributed around helix
-      const isCrimson = i < PARTICLE_COUNT * CRIMSON_FRACTION;
-      isCrimsonBuf[i] = isCrimson ? 1 : 0;
+      const ci = i < PARTICLE_COUNT * CRIMSON_FRACTION;
+      isCrimson[i] = ci ? 1 : 0;
 
-      // Crimson particles are brighter/redder
-      const c = isCrimson ? accentColor : offwhiteColor;
+      xOffsets[i] = rand() * STREAM_WIDTH;
+
+      const c = ci ? crimson : offwhite;
       colors[i * 3]     = c.r;
       colors[i * 3 + 1] = c.g;
       colors[i * 3 + 2] = c.b;
 
-      // Crimson particles are larger and faster
-      sizes[i]  = isCrimson ? 4.2 : (1.2 + rand() * 2.0);
-      speeds[i] = isCrimson ? BASE_SPEED * 1.65 : BASE_SPEED * (0.75 + rand() * 0.5);
+      sizes[i] = ci ? 4.0 : (1.1 + rand() * 1.8);
 
-      // Radial jitter: slight scatter off the exact helix path
-      radii[i]  = HELIX_RADIUS + (rand() - 0.5) * 0.22;
-
-      const [x, y, z] = helixPos(offsets[i]);
+      // Initial positions (will be overwritten first frame)
+      const ri = ribbonAssign[i];
+      const rb = RIBBONS[ri];
+      const x  = xOffsets[i] - STREAM_WIDTH / 2;
       positions[i * 3]     = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
+      positions[i * 3 + 1] = rb.y;
+      positions[i * 3 + 2] = rb.z;
     }
-    return { positions, colors, sizes, offsets, speeds, radii, isCrimsonBuf };
-  }, []);
 
-  // Trail layer: copies of crimson particle positions slightly behind in t
-  const CRIMSON_COUNT = Math.floor(PARTICLE_COUNT * CRIMSON_FRACTION);
-  const trailBufs = useMemo(() => {
-    const TRAIL_STEPS = 4;
-    const count = CRIMSON_COUNT * TRAIL_STEPS;
-    const positions = new Float32Array(count * 3);
-    const colors    = new Float32Array(count * 3);
-    const sizes     = new Float32Array(count);
-    return { positions, colors, sizes, TRAIL_STEPS };
-  }, [CRIMSON_COUNT]);
+    return { positions, colors, sizes, xOffsets, isCrimson };
+  }, [ribbonAssign]);
 
+  // Trail buffers (only for crimson particles)
+  const CRIMSON_COUNT = Math.ceil(PARTICLE_COUNT * CRIMSON_FRACTION);
+  const trailBufs = useMemo(() => ({
+    positions: new Float32Array(CRIMSON_COUNT * TRAIL_STEPS * 3),
+    colors:    new Float32Array(CRIMSON_COUNT * TRAIL_STEPS * 3),
+    sizes:     new Float32Array(CRIMSON_COUNT * TRAIL_STEPS),
+  }), [CRIMSON_COUNT]);
+
+  // BufferGeometry — created once, attributes point to pre-allocated arrays
   const geoMain = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(bufs.positions, 3));
-    g.setAttribute('color',    new THREE.BufferAttribute(bufs.colors, 3));
-    g.setAttribute('size',     new THREE.BufferAttribute(bufs.sizes, 1));
+    g.setAttribute('color',    new THREE.BufferAttribute(bufs.colors,    3));
+    g.setAttribute('size',     new THREE.BufferAttribute(bufs.sizes,     1));
     return g;
   }, [bufs]);
 
   const geoTrail = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(trailBufs.positions, 3));
-    g.setAttribute('color',    new THREE.BufferAttribute(trailBufs.colors, 3));
-    g.setAttribute('size',     new THREE.BufferAttribute(trailBufs.sizes, 1));
+    g.setAttribute('color',    new THREE.BufferAttribute(trailBufs.colors,    3));
+    g.setAttribute('size',     new THREE.BufferAttribute(trailBufs.sizes,     1));
     return g;
   }, [trailBufs]);
 
   useEffect(() => () => { geoMain.dispose(); geoTrail.dispose(); }, [geoMain, geoTrail]);
 
-  // Scratch vectors — allocated once, reused every frame (zero GC)
-  const _camPos  = useRef(new THREE.Vector3());
-  const _partPos = useRef(new THREE.Vector3());
+  // Scratch scalars — no object allocation in useFrame
+  const halfW = STREAM_WIDTH / 2;
 
-  useFrame(({ clock, camera }) => {
-    if (reducedMotion || !pointsRef.current) return;
+  useFrame(({ clock }) => {
+    if (reducedMotion || !mainRef.current) return;
 
-    const elapsed  = clock.getElapsedTime();
+    const elapsed = clock.getElapsedTime();
     const posAttr  = geoMain.attributes.position;
     const sizeAttr = geoMain.attributes.size;
     const colAttr  = geoMain.attributes.color;
 
-    _camPos.current.copy(camera.position);
-
-    // ── find any hovered anchor position for glow ──
-    let hoverX = 0, hoverY = 0, hoverZ = 0, hasHover = false;
+    // Hovered anchor position for glow calc
+    let hx = 0, hy = 0, hz = 0, hasHover = false;
     if (hoveredId) {
       const hi = ANCHOR_DATA.findIndex(a => a.id === hoveredId);
       if (hi >= 0) {
-        [hoverX, hoverY, hoverZ] = ANCHOR_POSITIONS[hi];
+        hx = ANCHOR_POSITIONS[hi][0];
+        hy = ANCHOR_POSITIONS[hi][1];
+        hz = ANCHOR_POSITIONS[hi][2];
         hasHover = true;
       }
     }
 
-    let trailIdx = 0;
-    const { TRAIL_STEPS } = trailBufs;
+    let crimsonTrailIdx = 0;
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const isCrimson = bufs.isCrimsonBuf[i] === 1;
-      const phase     = (bufs.offsets[i] + elapsed * bufs.speeds[i]) % 1;
-      const angle     = phase * Math.PI * 2 * HELIX_TURNS;
-      const y         = (phase - 0.5) * HELIX_HEIGHT;
-      const r         = bufs.radii[i];
+      const ri  = ribbonAssign[i];
+      const rb  = RIBBONS[ri];
+      const ci  = bufs.isCrimson[i] === 1;
+      const spd = BASE_SPEED * rb.speed * (ci ? 1.5 : 1.0);
 
-      const x = r * Math.cos(angle);
-      const z = r * Math.sin(angle);
+      // X: advance right, wrap at +halfW back to -halfW
+      const rawX = (bufs.xOffsets[i] + elapsed * spd) % STREAM_WIDTH;
+      const x    = rawX - halfW;
+
+      // Y: sine undulation — ribbon oscillates over time
+      const tNorm = rawX / STREAM_WIDTH;          // 0..1 along ribbon
+      const y     = rb.y + rb.amp * Math.sin(tNorm * Math.PI * 4 + rb.phase + elapsed * 0.35 * rb.freq);
+
+      const z = rb.z;
 
       posAttr.array[i * 3]     = x;
       posAttr.array[i * 3 + 1] = y;
       posAttr.array[i * 3 + 2] = z;
 
-      // Depth fade: particles closer to camera are brighter/larger
-      _partPos.current.set(x, y, z);
-      const dist  = _partPos.current.distanceTo(_camPos.current);
-      const depthFade = THREE.MathUtils.clamp(1 - (dist - 1.5) / 3.0, 0.25, 1.0);
+      // ── depth fade (back ribbons dimmer/smaller) ──
+      // rb.depth: 0=front, 1=back
+      const depthScale = 1.0 - rb.depth * 0.55;
 
-      // Glow when near hovered anchor
+      // ── edge fade: fade in from left, fade out on right ──
+      let edgeFade = 1.0;
+      const absX = rawX; // 0..STREAM_WIDTH
+      if (absX < EDGE_FADE_W)           edgeFade = absX / EDGE_FADE_W;
+      else if (absX > STREAM_WIDTH - EDGE_FADE_W) edgeFade = (STREAM_WIDTH - absX) / EDGE_FADE_W;
+
+      // ── glow when crimson particle is near a hovered anchor ──
       let glowBoost = 1.0;
-      if (hasHover && isCrimson) {
-        const dx = x - hoverX, dy = y - hoverY, dz = z - hoverZ;
+      if (hasHover && ci) {
+        const dx = x - hx, dy = y - hy, dz = z - hz;
         const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 < 0.4) glowBoost = 1 + (1 - d2 / 0.4) * 1.2;
+        if (d2 < 0.36) glowBoost = 1.0 + (1.0 - d2 / 0.36) * 1.4;
       }
 
-      const baseSize = bufs.sizes[i];
-      sizeAttr.array[i] = baseSize * depthFade * glowBoost;
+      const combinedAlpha = depthScale * edgeFade;
 
-      // Color: depth-fade offwhite dims to slightly warm gray; crimson dims to dark red
-      if (isCrimson) {
-        colAttr.array[i * 3]     = THREE.MathUtils.lerp(0.35, 0.94, depthFade * glowBoost);
-        colAttr.array[i * 3 + 1] = THREE.MathUtils.lerp(0.03, 0.38, depthFade);
-        colAttr.array[i * 3 + 2] = THREE.MathUtils.lerp(0.03, 0.44, depthFade);
+      sizeAttr.array[i] = bufs.sizes[i] * combinedAlpha * glowBoost;
+
+      // Colour modulation: depth dims brightness
+      if (ci) {
+        const bright = combinedAlpha * glowBoost;
+        colAttr.array[i * 3]     = THREE.MathUtils.lerp(0.28, 0.94, bright);
+        colAttr.array[i * 3 + 1] = THREE.MathUtils.lerp(0.02, 0.38, combinedAlpha);
+        colAttr.array[i * 3 + 2] = THREE.MathUtils.lerp(0.02, 0.44, combinedAlpha);
       } else {
-        const v = 0.55 + depthFade * 0.35;
+        const v = 0.50 + combinedAlpha * 0.40;
         colAttr.array[i * 3]     = v * 0.91;
         colAttr.array[i * 3 + 1] = v * 0.90;
         colAttr.array[i * 3 + 2] = v * 0.88;
       }
 
-      // Trail: write TRAIL_STEPS ghost positions behind crimson particles
-      if (isCrimson) {
+      // ── crimson trail (ghost positions behind in X) ──
+      if (ci && crimsonTrailIdx < trailBufs.positions.length / 3) {
         for (let s = 1; s <= TRAIL_STEPS; s++) {
-          const tp     = ((phase - s * 0.008) + 1) % 1;
-          const tAngle = tp * Math.PI * 2 * HELIX_TURNS;
-          const ty     = (tp - 0.5) * HELIX_HEIGHT;
-          const tx     = r * Math.cos(tAngle);
-          const tz     = r * Math.sin(tAngle);
-          const fade   = (1 - s / (TRAIL_STEPS + 1)) * depthFade;
+          const fade   = (1 - s / (TRAIL_STEPS + 1)) * combinedAlpha;
+          const rawXt  = ((rawX - s * spd * 0.04) + STREAM_WIDTH) % STREAM_WIDTH;
+          const xt     = rawXt - halfW;
+          const tNormt = rawXt / STREAM_WIDTH;
+          const yt     = rb.y + rb.amp * Math.sin(tNormt * Math.PI * 4 + rb.phase + elapsed * 0.35 * rb.freq);
 
-          trailBufs.positions[trailIdx * 3]     = tx;
-          trailBufs.positions[trailIdx * 3 + 1] = ty;
-          trailBufs.positions[trailIdx * 3 + 2] = tz;
-          trailBufs.colors[trailIdx * 3]         = 0.55 * fade;
-          trailBufs.colors[trailIdx * 3 + 1]     = 0.1  * fade;
-          trailBufs.colors[trailIdx * 3 + 2]     = 0.1  * fade;
-          trailBufs.sizes[trailIdx]              = 1.8  * fade;
-          trailIdx++;
+          const ti = crimsonTrailIdx * 3;
+          trailBufs.positions[ti]     = xt;
+          trailBufs.positions[ti + 1] = yt;
+          trailBufs.positions[ti + 2] = z;
+          trailBufs.colors[ti]        = 0.55 * fade;
+          trailBufs.colors[ti + 1]    = 0.08 * fade;
+          trailBufs.colors[ti + 2]    = 0.08 * fade;
+          trailBufs.sizes[crimsonTrailIdx] = 1.6 * fade;
+          crimsonTrailIdx++;
         }
       }
     }
@@ -232,38 +258,35 @@ function ParticleField({ reducedMotion, anchors, hoveredId }) {
     colAttr.needsUpdate  = true;
 
     const tp = geoTrail.attributes.position;
-    const ts = geoTrail.attributes.size;
     const tc = geoTrail.attributes.color;
+    const ts = geoTrail.attributes.size;
     tp.array.set(trailBufs.positions);
-    ts.array.set(trailBufs.sizes);
     tc.array.set(trailBufs.colors);
+    ts.array.set(trailBufs.sizes);
     tp.needsUpdate = true;
-    ts.needsUpdate = true;
     tc.needsUpdate = true;
+    ts.needsUpdate = true;
   });
 
   return (
     <>
-      {/* Main particle stream */}
-      <points ref={pointsRef} geometry={geoMain}>
+      <points ref={mainRef} geometry={geoMain}>
         <pointsMaterial
           vertexColors
-          size={0.028}
+          size={0.030}
           sizeAttenuation
           transparent
-          opacity={0.62}
+          opacity={0.55}
           depthWrite={false}
         />
       </points>
-
-      {/* Crimson trail layer */}
-      <points ref={trailPointsRef} geometry={geoTrail}>
+      <points ref={trailRef} geometry={geoTrail}>
         <pointsMaterial
           vertexColors
-          size={0.018}
+          size={0.020}
           sizeAttenuation
           transparent
-          opacity={0.38}
+          opacity={0.36}
           depthWrite={false}
         />
       </points>
@@ -271,52 +294,76 @@ function ParticleField({ reducedMotion, anchors, hoveredId }) {
   );
 }
 
-// ─── helix guide line ─────────────────────────────────────────────────────────
-// Subtle wireframe guide that reveals the path structure
+// ─── guide lines (ribbon structure at opacity 0.06) ───────────────────────────
 
-function HelixGuide() {
-  const geo = useMemo(() => {
-    const STEPS = 200;
-    const verts = new Float32Array(STEPS * 3);
-    for (let i = 0; i < STEPS; i++) {
-      const [x, y, z] = helixPos(i / STEPS);
-      verts[i * 3]     = x;
-      verts[i * 3 + 1] = y;
-      verts[i * 3 + 2] = z;
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-    return g;
+function RibbonGuides() {
+  const geos = useMemo(() => {
+    const STEPS = 80;
+    return RIBBONS.map(rb => {
+      const verts = new Float32Array(STEPS * 3);
+      for (let i = 0; i < STEPS; i++) {
+        const t = i / (STEPS - 1);
+        const x = t * STREAM_WIDTH - STREAM_WIDTH / 2;
+        const y = rb.y + rb.amp * Math.sin(t * Math.PI * 4 + rb.phase);
+        verts[i * 3]     = x;
+        verts[i * 3 + 1] = y;
+        verts[i * 3 + 2] = rb.z;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      return g;
+    });
   }, []);
 
-  useEffect(() => () => geo.dispose(), [geo]);
+  // Animate guide lines with the same ribbon phase drift
+  const linesRef = useRef([]);
+
+  useEffect(() => () => geos.forEach(g => g.dispose()), [geos]);
+
+  useFrame(({ clock }) => {
+    const elapsed = clock.getElapsedTime();
+    for (let ri = 0; ri < RIBBONS.length; ri++) {
+      const rb   = RIBBONS[ri];
+      const geo  = geos[ri];
+      const attr = geo.attributes.position;
+      const STEPS = attr.count;
+      for (let i = 0; i < STEPS; i++) {
+        const t = i / (STEPS - 1);
+        const y = rb.y + rb.amp * Math.sin(t * Math.PI * 4 + rb.phase + elapsed * 0.35 * rb.freq);
+        attr.array[i * 3 + 1] = y;
+      }
+      attr.needsUpdate = true;
+    }
+  });
 
   return (
-    <line geometry={geo}>
-      <lineBasicMaterial color="#e8e6e1" transparent opacity={0.04} depthWrite={false} />
-    </line>
+    <>
+      {geos.map((geo, ri) => (
+        <line key={ri} ref={el => { linesRef.current[ri] = el; }} geometry={geo}>
+          <lineBasicMaterial
+            color="#e8e6e1"
+            transparent
+            opacity={0.06 - RIBBONS[ri].depth * 0.04}
+            depthWrite={false}
+          />
+        </line>
+      ))}
+    </>
   );
 }
 
 // ─── stream scene ─────────────────────────────────────────────────────────────
 
-function StreamScene({ anchors, hoveredId, onHover, reducedMotion, rotating }) {
-  const groupRef = useRef();
-
-  useFrame(() => {
-    if (!groupRef.current || !rotating || reducedMotion) return;
-    groupRef.current.rotation.y += 0.0012; // slow Y drift
-  });
-
+function StreamScene({ anchors, hoveredId, onHover, reducedMotion }) {
   return (
-    <group ref={groupRef}>
-      <HelixGuide />
-      <ParticleField reducedMotion={reducedMotion} anchors={anchors} hoveredId={hoveredId} />
+    <group>
+      <RibbonGuides />
+      <ParticleField reducedMotion={reducedMotion} hoveredId={hoveredId} />
 
       {anchors.map((anchor, i) => {
         const [ax, ay, az] = ANCHOR_POSITIONS[i];
-        // Label floats slightly outward from helix radius
-        const labelPos = [ax * 1.22, ay + 0.12, az * 1.22];
+        // Label floats slightly above the anchor
+        const labelPos = [ax, ay + 0.16, az + 0.1];
         return (
           <InteractivePoint
             key={anchor.id}
@@ -329,7 +376,7 @@ function StreamScene({ anchors, hoveredId, onHover, reducedMotion, rotating }) {
             hovered={hoveredId === anchor.id}
             reducedMotion={reducedMotion}
             mountDelay={MOUNT_DELAYS[i]}
-            radius={0.038}
+            radius={0.036}
           />
         );
       })}
@@ -341,7 +388,6 @@ function StreamScene({ anchors, hoveredId, onHover, reducedMotion, rotating }) {
 
 export default function ParticleStream({ onHoverContract, hoveredContract }) {
   const { table } = useStream();
-  const [rotating, setRotating] = useState(true);
   const rotateResumeRef = useRef(null);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -355,26 +401,13 @@ export default function ParticleStream({ onHoverContract, hoveredContract }) {
     return ANCHOR_DATA.find(a => a.empresa === hoveredContract.empresa)?.id || null;
   }, [hoveredContract]);
 
-  const pauseRotation = useCallback(() => {
-    if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current);
-    setRotating(false);
-  }, []);
-
-  const resumeRotation = useCallback(() => {
-    if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current);
-    if (reducedMotion) return;
-    rotateResumeRef.current = setTimeout(() => setRotating(true), 900);
-  }, [reducedMotion]);
-
   const handleHover = useCallback((contract, anchor) => {
     if (contract) {
-      pauseRotation();
       onHoverContract(contract, anchor);
     } else {
       onHoverContract(null);
-      resumeRotation();
     }
-  }, [onHoverContract, pauseRotation, resumeRotation]);
+  }, [onHoverContract]);
 
   useEffect(() => {
     return () => { if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current); };
@@ -383,30 +416,26 @@ export default function ParticleStream({ onHoverContract, hoveredContract }) {
   return (
     <Canvas
       className={styles.canvas}
-      camera={{ position: [0, 0, 3.6], fov: 38, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, 3.4], fov: 36, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: false }}
       onCreated={({ gl }) => gl.setClearColor('#0a0a0a', 1)}
     >
-      <ambientLight intensity={0.02} />
-      <pointLight position={[2, 3, 2]}   intensity={0.28} color="#ffffff" />
-      <pointLight position={[-2, -3, -2]} intensity={0.10} color="#8B1A1A" />
-      {/* Subtle rim from above to pick out top of helix */}
-      <directionalLight position={[0, 4, 1]} intensity={0.12} color="#e8e6e1" />
+      <ambientLight intensity={0.015} />
+      <pointLight position={[0,  2.5, 2]}  intensity={0.20} color="#ffffff" />
+      <pointLight position={[0, -2.0, -1]} intensity={0.08} color="#8B1A1A" />
+      <directionalLight position={[3, 1, 2]} intensity={0.10} color="#e8e6e1" />
 
       <StreamScene
         anchors={anchors}
         hoveredId={hoveredId}
         onHover={handleHover}
         reducedMotion={reducedMotion}
-        rotating={rotating}
       />
 
       <OrbitControls
         enableZoom={false}
         enablePan={false}
         rotateSpeed={0.45}
-        onStart={pauseRotation}
-        onEnd={resumeRotation}
         makeDefault
       />
     </Canvas>
