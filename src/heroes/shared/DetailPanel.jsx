@@ -11,7 +11,8 @@ const STATUS_VARIANT = {
 };
 
 const PANEL_MARGIN = 16;
-const PANEL_OFFSET = 22;
+const PANEL_OFFSET = 20;
+const PANEL_WIDTH  = 280;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -35,9 +36,8 @@ export default function DetailPanel({ contract, anchor }) {
     if (!contract) return;
 
     const updatePosition = () => {
-      const rect = panelRef.current?.getBoundingClientRect();
-      const width = rect?.width || 300;
-      const height = rect?.height || 160;
+      const height = panelRef.current?.getBoundingClientRect().height || 180;
+      const width  = PANEL_WIDTH;
       const origin = anchor || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       const opensLeft = origin.x + PANEL_OFFSET + width + PANEL_MARGIN > window.innerWidth;
 
@@ -45,7 +45,7 @@ export default function DetailPanel({ contract, anchor }) {
       const rawY = origin.y - height / 2;
 
       setPosition({
-        x: clamp(rawX, PANEL_MARGIN, window.innerWidth - width - PANEL_MARGIN),
+        x: clamp(rawX, PANEL_MARGIN, window.innerWidth  - width  - PANEL_MARGIN),
         y: clamp(rawY, PANEL_MARGIN, window.innerHeight - height - PANEL_MARGIN),
         placement: opensLeft ? 'left' : 'right',
       });

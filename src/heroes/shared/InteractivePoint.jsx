@@ -183,7 +183,7 @@ export default function InteractivePoint({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {hovered && label && (
+      {hovered && label && !data && (
         <Html position={labelPos} zIndexRange={[10, 0]} center>
           <div className={styles.pointLabel}>{label}</div>
         </Html>

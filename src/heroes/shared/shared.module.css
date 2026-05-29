@@ -21,12 +21,12 @@
 
 .detailPanel {
   position: fixed;
-  z-index: 30;
+  z-index: 50;
   background: rgba(13, 13, 15, 0.95);
   border: 1px solid var(--color-border);
   padding: var(--space-5);
-  width: min(300px, calc(100vw - 32px));
-  min-width: min(280px, calc(100vw - 32px));
+  width: 280px;
+  max-width: calc(100vw - 32px);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
