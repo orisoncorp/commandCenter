@@ -2,6 +2,12 @@
   display: flex;
   gap: 1px;
   align-items: center;
+  opacity: 0.6;
+  transition: opacity 200ms var(--motion-easing-state);
+}
+
+.toggle:hover {
+  opacity: 1;
 }
 
 .btn {
@@ -12,7 +18,7 @@
   text-transform: uppercase;
   color: var(--color-text-muted);
   background: transparent;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   padding: 4px 10px;
   cursor: pointer;
   transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -24,16 +30,16 @@
 
 .btn:hover {
   color: var(--color-text-secondary);
-  border-color: var(--color-slate);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .active {
   color: var(--color-crimson-text);
-  border-color: var(--color-crimson);
-  background: rgba(139, 26, 26, 0.10);
+  border-color: rgba(139, 26, 26, 0.4);
+  background: rgba(139, 26, 26, 0.08);
 }
 
 .active:hover {
   color: var(--color-crimson-text);
-  border-color: var(--color-crimson);
+  border-color: rgba(139, 26, 26, 0.6);
 }

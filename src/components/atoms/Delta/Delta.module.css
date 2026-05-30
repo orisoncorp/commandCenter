@@ -1,22 +1,19 @@
 .delta {
   display: inline-flex;
   align-items: center;
+  gap: 3px;
   font-family: var(--font-body);
   font-size: var(--micro-size);
   font-weight: var(--micro-weight);
   letter-spacing: var(--micro-spacing);
   text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 2px;
   line-height: 1;
 }
 
 .positive {
-  background: rgba(26, 92, 46, 0.15);
   color: #3AAA62;
 }
 
 .negative {
-  background: rgba(139, 26, 26, 0.15);
   color: var(--color-crimson-text);
 }

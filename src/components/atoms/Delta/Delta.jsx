@@ -8,6 +8,7 @@ export default function Delta({ value, format = 'percent' }) {
 
   return (
     <span className={`${styles.delta} ${isPositive ? styles.positive : styles.negative}`}>
+      <span style={{ fontSize: '6px', lineHeight: 1 }}>{isPositive ? '▲' : '▼'}</span>
       {display}
     </span>
   );

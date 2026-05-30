@@ -31,5 +31,10 @@
 
   /* Overlay */
   --color-overlay: rgba(10, 10, 10, 0.75);
-  --color-panel-bg: rgba(13, 13, 15, 0.85);
+  --color-panel-bg: rgba(13, 13, 15, 0.75);
+  --color-glass-surface: rgba(13, 13, 15, 0.72);
+  --color-glass-header: rgba(17, 17, 19, 0.88);
+  --color-glass-detail: rgba(13, 13, 15, 0.92);
+  --color-glass-border: rgba(255, 255, 255, 0.04);
+  --color-glass-shadow: rgba(139, 26, 26, 0.12);
 }

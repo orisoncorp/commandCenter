@@ -14,7 +14,7 @@
   letter-spacing: var(--micro-spacing);
   text-transform: uppercase;
   color: var(--color-text-muted);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-glass-border);
   padding-bottom: var(--space-1);
   flex-shrink: 0;
 }

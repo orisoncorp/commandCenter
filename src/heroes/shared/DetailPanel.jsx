@@ -69,7 +69,7 @@ export default function DetailPanel({ contract, anchor }) {
         opacity: visible ? 1 : 0,
         transform: `scale(${visible ? 1 : 0.96})`,
         transformOrigin: position.placement === 'left' ? 'right center' : 'left center',
-        transition: 'opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), transform 280ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       <div className={styles.detailHeader}>
