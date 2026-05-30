@@ -29,15 +29,13 @@ const SWEEP_PAUSE    = 3.0;  // seconds pause after sweep completes
 function RadarSweep({ sweepAngleRef, reducedMotion }) {
   const groupRef = useRef();
   const matRef   = useRef();
-  const state    = useRef({ phase: 'sweep', timer: 0 }); // 'sweep' | 'pause'
+  const state    = useRef({ phase: 'sweep', timer: 0 });
 
-  // Meridian plane: tall rectangle that stands vertical and rotates around Y axis.
-  // DoubleSide so it's visible from both front and back as it sweeps.
-  const geo = useMemo(() => {
-    // Width covers a ~25° arc at the globe surface, height covers full diameter + overshoot
-    return new THREE.PlaneGeometry(0.48, 2.20);
-  }, []);
-
+  // A thin vertical quad offset to the globe surface (r=1.06).
+  // The group rotates around Y — the quad sweeps like a clock hand across the globe.
+  // Position [0, 0, 1.06]: sits at the front of the globe in local space,
+  // group Y-rotation sweeps it around the full equator.
+  const geo = useMemo(() => new THREE.PlaneGeometry(0.22, 2.20), []);
   useEffect(() => () => geo.dispose(), [geo]);
 
   useFrame((_, delta) => {
@@ -61,9 +59,8 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
     groupRef.current.rotation.y = progress * Math.PI * 2;
     sweepAngleRef.current = groupRef.current.rotation.y;
 
-    // Fade in/out at sweep start/end
-    const fade = Math.min(progress * 5, 1) * Math.min((1 - progress) * 5, 1);
-    if (matRef.current) matRef.current.opacity = 0.32 * fade;
+    const fade = Math.min(progress * 4, 1) * Math.min((1 - progress) * 4, 1);
+    if (matRef.current) matRef.current.opacity = 0.45 * fade;
 
     if (s.timer >= SWEEP_DURATION) {
       s.phase = 'pause';
@@ -72,22 +69,13 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
     }
   });
 
-  // Plane sits at x=0 initially (faces camera), needs to be pushed to globe surface
-  // We place it at z=0, x=1.06 (globe radius) and rotate so it stands as a meridian.
-  // Easier: keep it at origin but tilted — the plane normal points along Z by default.
-  // Rotate 90° around Y so it aligns as a N-S meridian slice, then groupRef rotates around Y.
   return (
     <group ref={groupRef} raycast={() => null}>
-      {/* Plane rotated so it faces along X — stands as a vertical meridian slice */}
-      <mesh
-        geometry={geo}
-        position={[0, 0, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        raycast={() => null}
-      >
+      {/* Quad sits at z=+1.06 (globe surface), faces outward along Z */}
+      <mesh geometry={geo} position={[0, 0, 1.06]} raycast={() => null}>
         <meshBasicMaterial
           ref={matRef}
-          color="#8B1A1A"
+          color="#C0282A"
           transparent
           opacity={0}
           depthWrite={false}
@@ -111,27 +99,31 @@ function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, r
   });
 
   return (
-    <group ref={groupRef}>
-      <GlobeMesh radius={1} autoRotate={false} rotating={false} />
-      <ConnectionLines />
+    <>
+      {/* RadarSweep is OUTSIDE the rotating group so it spins independently */}
       <RadarSweep sweepAngleRef={sweepAngleRef} reducedMotion={reducedMotion} />
 
-      {points.map((pt) => (
-        <DataPoint
-          key={pt.empresa}
-          lat={pt.lat}
-          lng={pt.lng}
-          empresa={pt.empresa}
-          data={pt.contract}
-          onHover={onHoverContract}
-          hovered={hoveredContract?.empresa === pt.empresa}
-          reducedMotion={reducedMotion}
-          mountDelay={pt.mountDelay}
-          pulseSignal={pt.pulseSignal}
-          sweepAngleRef={sweepAngleRef}
-        />
-      ))}
-    </group>
+      <group ref={groupRef}>
+        <GlobeMesh radius={1} autoRotate={false} rotating={false} />
+        <ConnectionLines />
+
+        {points.map((pt) => (
+          <DataPoint
+            key={pt.empresa}
+            lat={pt.lat}
+            lng={pt.lng}
+            empresa={pt.empresa}
+            data={pt.contract}
+            onHover={onHoverContract}
+            hovered={hoveredContract?.empresa === pt.empresa}
+            reducedMotion={reducedMotion}
+            mountDelay={pt.mountDelay}
+            pulseSignal={pt.pulseSignal}
+            sweepAngleRef={sweepAngleRef}
+          />
+        ))}
+      </group>
+    </>
   );
 }
 

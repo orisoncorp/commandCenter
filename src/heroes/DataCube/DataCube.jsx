@@ -10,10 +10,10 @@ import { calcStaggerDelay } from '../../motion/constants';
 // ─── layer definitions ────────────────────────────────────────────────────────
 // Three concentric wireframe cubes. Outer = macro view, core = analytical depth.
 
+// Scale reduced ~30%: outer was 1.60 → 1.12, core was 1.00 → 0.70
 const LAYERS = [
-  { size: 2.40, opacity: 0.18, color: '#e8e6e1', speed: 0.0014, speedX: 0.0004 }, // outer — dim, slow
-  { size: 1.60, opacity: 0.30, color: '#e8e6e1', speed: 0.0022, speedX: 0.0007 }, // mid
-  { size: 1.00, opacity: 0.50, color: '#8B1A1A', speed: 0.0034, speedX: 0.0010 }, // core — crimson, faster
+  { size: 1.12, opacity: 0.28, color: '#e8e6e1', speed: 0.0016, speedX: 0.0005 }, // outer (was mid)
+  { size: 0.70, opacity: 0.55, color: '#8B1A1A', speed: 0.0036, speedX: 0.0011 }, // core crimson, faster
 ];
 
 // ─── anchor configs — distributed across layers ───────────────────────────────
@@ -27,10 +27,10 @@ const CORNERS = [
 
 const ANCHOR_CONFIGS = [
   { empresa: 'Acme Corp',       layerIdx: 0, cornerIdx: 0 }, // outer: front-top-right
-  { empresa: 'Beta Industries', layerIdx: 0, cornerIdx: 6 }, // outer: back-bottom-right
-  { empresa: 'Gamma SA',        layerIdx: 1, cornerIdx: 3 }, // mid: front-bottom-left
-  { empresa: 'Delta Corp',      layerIdx: 1, cornerIdx: 5 }, // mid: back-top-left
-  { empresa: 'Epsilon Ltda',    layerIdx: 2, cornerIdx: 0 }, // core: front-top-right
+  { empresa: 'Beta Industries', layerIdx: 0, cornerIdx: 3 }, // outer: front-bottom-left
+  { empresa: 'Gamma SA',        layerIdx: 0, cornerIdx: 5 }, // outer: back-top-left
+  { empresa: 'Delta Corp',      layerIdx: 1, cornerIdx: 2 }, // core: front-bottom-right
+  { empresa: 'Epsilon Ltda',    layerIdx: 1, cornerIdx: 0 }, // core: front-top-right
 ];
 
 const MOUNT_DELAYS = ANCHOR_CONFIGS.map((_, i) => calcStaggerDelay(i, 80));
@@ -103,7 +103,7 @@ function CrossLayerParticle({ reducedMotion }) {
     meshRef.current.visible = true;
 
     // Travel from core corner to outer corner (or reverse)
-    const coreHalf  = LAYERS[2].size / 2;
+    const coreHalf  = LAYERS[1].size / 2;
     const outerHalf = LAYERS[0].size / 2;
     const t         = s.direction === 1 ? s.progress : 1 - s.progress;
 
@@ -132,21 +132,18 @@ function CrossLayerParticle({ reducedMotion }) {
 // ─── connection lines between corresponding corners across layers ──────────────
 
 function CrossLayerLines() {
-  // Connect 4 corners of outer to corresponding corners of mid, and mid to core
+  // Connect 4 corners of outer layer to corresponding corners of core
   const geo = useMemo(() => {
     const pairs = [];
-    // Use only 4 corners (alternate) for visual clarity — not all 8
     const connCorners = [0, 2, 5, 7];
     for (const ci of connCorners) {
       const [sx, sy, sz] = CORNERS[ci];
-      for (let li = 0; li < LAYERS.length - 1; li++) {
-        const hA = LAYERS[li].size / 2;
-        const hB = LAYERS[li + 1].size / 2;
-        pairs.push(
-          sx * hA, sy * hA, sz * hA,
-          sx * hB, sy * hB, sz * hB,
-        );
-      }
+      const hA = LAYERS[0].size / 2;
+      const hB = LAYERS[1].size / 2;
+      pairs.push(
+        sx * hA, sy * hA, sz * hA,
+        sx * hB, sy * hB, sz * hB,
+      );
     }
     const buf = new Float32Array(pairs);
     const g   = new THREE.BufferGeometry();
@@ -179,7 +176,7 @@ function CoreGlow({ reducedMotion }) {
 
   return (
     <mesh raycast={() => null}>
-      <sphereGeometry args={[0.28, 20, 20]} />
+      <sphereGeometry args={[0.20, 20, 20]} />
       <meshBasicMaterial ref={matRef} color="#8B1A1A" transparent opacity={baseOp} side={THREE.BackSide} depthWrite={false} />
     </mesh>
   );
@@ -197,7 +194,7 @@ function NestedCubeScene({ anchors, hoveredEmpresa, onHover, reducedMotion, rota
   // Per-anchor world positions — recomputed when layers rotate (needs ref to groups)
   // Anchor positions are computed in world space by the layer group's rotation.
   // We store 3 group refs (one per layer) to read their current matrix.
-  const layerGroupRefs = useRef([null, null, null]);
+  const layerGroupRefs = useRef([null, null]);
 
   // Scratch vector for anchor position calc
   const _anchorScratch = useRef(new THREE.Vector3());
@@ -253,7 +250,7 @@ function NestedCubeScene({ anchors, hoveredEmpresa, onHover, reducedMotion, rota
                   hovered={hoveredEmpresa === anchor.empresa}
                   reducedMotion={reducedMotion}
                   mountDelay={MOUNT_DELAYS[i]}
-                  radius={li === 2 ? 0.044 : 0.036}
+                  radius={li === 1 ? 0.044 : 0.036}
                 />
               );
             })
@@ -305,7 +302,7 @@ export default function DataCube({ onHoverContract, hoveredContract }) {
   return (
     <Canvas
       className={styles.canvas}
-      camera={{ position: [0, 0, 3.8], fov: 38, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, 2.6], fov: 38, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: false }}
       onCreated={({ gl }) => gl.setClearColor('#0a0a0a', 1)}
     >

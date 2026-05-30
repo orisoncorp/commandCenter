@@ -83,9 +83,10 @@ const WAVE_BOOST    = 2.80;  // size/brightness multiplier at wave center — cl
 const WAVE_SPEED    = BASE_SPEED * 1.4; // slightly faster than average flow
 
 function ParticleField({ reducedMotion, hoveredId }) {
-  const mainRef  = useRef();
-  const trailRef = useRef();
-  const wave     = useRef(makeWaveState());
+  const mainRef    = useRef();
+  const trailRef   = useRef();
+  const mainMatRef = useRef(); // ref to pointsMaterial for size/opacity modulation
+  const wave       = useRef(makeWaveState());
 
   // Assign ribbon index to each particle, respecting density weights
   const ribbonAssign = useMemo(() => {
@@ -298,6 +299,18 @@ function ParticleField({ reducedMotion, hoveredId }) {
     sizeAttr.needsUpdate = true;
     colAttr.needsUpdate  = true;
 
+    // Modulate the material's global size and opacity based on wave peak
+    // This makes the wave obvious even when vertex color is near-white (capped)
+    if (mainMatRef.current) {
+      const wavePeak = wv.active
+        ? Math.max(0, 1 - Math.abs(wv.xCenter) / (halfW + 0.5)) // 0..1 based on wave position in view
+        : 0;
+      // During wave: size grows 1.8×, opacity hits 0.9
+      mainMatRef.current.size    = 0.030 + wavePeak * 0.024;
+      mainMatRef.current.opacity = 0.55  + wavePeak * 0.35;
+      mainMatRef.current.needsUpdate = true;
+    }
+
     const tp = geoTrail.attributes.position;
     const tc = geoTrail.attributes.color;
     const ts = geoTrail.attributes.size;
@@ -313,6 +326,7 @@ function ParticleField({ reducedMotion, hoveredId }) {
     <>
       <points ref={mainRef} geometry={geoMain}>
         <pointsMaterial
+          ref={mainMatRef}
           vertexColors
           size={0.030}
           sizeAttenuation
