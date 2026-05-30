@@ -101,21 +101,20 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
 // ─── globe scene ──────────────────────────────────────────────────────────────
 
 function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, rotating, sweepAngleRef }) {
-  const groupRef = useRef();
+  const globeGroupRef = useRef();
 
   useFrame(() => {
-    if (!groupRef.current) return;
-    if (!reducedMotion && rotating) {
-      groupRef.current.rotation.y += 0.002;
-    }
+    if (!globeGroupRef.current) return;
+    if (rotating) globeGroupRef.current.rotation.y += 0.002;
   });
 
+  // Outer group holds everything — RadarSweep and the rotating globe group are siblings.
+  // RadarSweep must NOT be inside globeGroupRef so it rotates independently.
   return (
-    <>
-      {/* RadarSweep is OUTSIDE the rotating group so it spins independently */}
+    <group>
       <RadarSweep sweepAngleRef={sweepAngleRef} reducedMotion={reducedMotion} />
 
-      <group ref={groupRef}>
+      <group ref={globeGroupRef}>
         <GlobeMesh radius={1} autoRotate={false} rotating={false} />
         <ConnectionLines />
 
@@ -135,7 +134,7 @@ function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, r
           />
         ))}
       </group>
-    </>
+    </group>
   );
 }
 
