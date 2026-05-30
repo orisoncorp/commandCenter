@@ -1,6 +1,7 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 import GlobeMesh from './GlobeMesh';
 import DataPoint from './DataPoint';
 import ConnectionLines from './ConnectionLines';
@@ -18,7 +19,86 @@ const LOCATIONS = [
 
 const MOUNT_DELAYS = LOCATIONS.map((_, i) => calcStaggerDelay(i, 60));
 
-function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, rotating }) {
+// ─── radar sweep ──────────────────────────────────────────────────────────────
+// A thin arc that sweeps around the globe in Y, pauses, then repeats.
+// sweepAngleRef.current is written each frame so DataPoints can read it.
+
+const SWEEP_DURATION = 7.0;  // seconds for one full 2π sweep
+const SWEEP_PAUSE    = 3.0;  // seconds pause after sweep completes
+
+function RadarSweep({ sweepAngleRef, reducedMotion }) {
+  const groupRef  = useRef();
+  const matRef    = useRef();
+  const state     = useRef({ phase: 'sweep', timer: 0 }); // 'sweep' | 'pause'
+
+  // Semi-transparent wedge: a CylinderGeometry with thetaLength = small arc
+  // oriented along Y — the sweep plane
+  const geo = useMemo(() => {
+    return new THREE.CylinderGeometry(
+      1.06, 1.06,   // top/bottom radius (just outside globe surface)
+      0.001,         // height (thin disk)
+      48,            // radial segments
+      1,             // height segments
+      false,         // open ended
+      0,             // thetaStart
+      0.18,          // thetaLength — ~10° arc
+    );
+  }, []);
+
+  useEffect(() => () => geo.dispose(), [geo]);
+
+  useFrame((_, delta) => {
+    if (reducedMotion || !groupRef.current) return;
+    const s = state.current;
+
+    if (s.phase === 'pause') {
+      s.timer += delta;
+      if (s.timer >= SWEEP_PAUSE) {
+        s.phase = 'sweep';
+        s.timer = 0;
+        groupRef.current.rotation.y = 0;
+      }
+      sweepAngleRef.current = -999; // no active sweep — no flashes
+      if (matRef.current) matRef.current.opacity = 0;
+      return;
+    }
+
+    // sweeping
+    s.timer += delta;
+    const progress = s.timer / SWEEP_DURATION;
+    groupRef.current.rotation.y = progress * Math.PI * 2;
+    sweepAngleRef.current = groupRef.current.rotation.y;
+
+    // Fade in at start, fade out near end
+    const fade = Math.min(progress * 6, 1) * Math.min((1 - progress) * 6, 1);
+    if (matRef.current) matRef.current.opacity = 0.28 * fade;
+
+    if (s.timer >= SWEEP_DURATION) {
+      s.phase = 'pause';
+      s.timer = 0;
+      sweepAngleRef.current = -999;
+    }
+  });
+
+  return (
+    <group ref={groupRef} raycast={() => null}>
+      <mesh geometry={geo} raycast={() => null}>
+        <meshBasicMaterial
+          ref={matRef}
+          color="#8B1A1A"
+          transparent
+          opacity={0}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── globe scene ──────────────────────────────────────────────────────────────
+
+function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, rotating, sweepAngleRef }) {
   const groupRef = useRef();
 
   useFrame(() => {
@@ -32,6 +112,7 @@ function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, r
     <group ref={groupRef}>
       <GlobeMesh radius={1} autoRotate={false} rotating={false} />
       <ConnectionLines />
+      <RadarSweep sweepAngleRef={sweepAngleRef} reducedMotion={reducedMotion} />
 
       {points.map((pt) => (
         <DataPoint
@@ -45,18 +126,22 @@ function GlobeScene({ points, hoveredContract, onHoverContract, reducedMotion, r
           reducedMotion={reducedMotion}
           mountDelay={pt.mountDelay}
           pulseSignal={pt.pulseSignal}
+          sweepAngleRef={sweepAngleRef}
         />
       ))}
     </group>
   );
 }
 
+// ─── root ─────────────────────────────────────────────────────────────────────
+
 export default function Globe({ onHoverContract, hoveredContract }) {
   const { table, events } = useStream();
   const [rotating, setRotating] = useState(true);
   const [pulseSignals, setPulseSignals] = useState({});
   const prevEventCountRef = useRef(0);
-  const rotateResumeRef = useRef(null);
+  const rotateResumeRef   = useRef(null);
+  const sweepAngleRef     = useRef(-999); // shared radar angle, -999 = inactive
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   useEffect(() => {
@@ -95,18 +180,12 @@ export default function Globe({ onHoverContract, hoveredContract }) {
       onHoverContract(contract, anchor);
       return;
     }
-
     onHoverContract(null);
     resumeRotation();
   }, [onHoverContract, pauseRotation, resumeRotation]);
 
-  const handleDragStart = useCallback(() => {
-    pauseRotation();
-  }, [pauseRotation]);
-
-  const handleDragEnd = useCallback(() => {
-    resumeRotation();
-  }, [resumeRotation]);
+  const handleDragStart = useCallback(() => pauseRotation(), [pauseRotation]);
+  const handleDragEnd   = useCallback(() => resumeRotation(), [resumeRotation]);
 
   useEffect(() => {
     return () => { if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current); };
@@ -130,6 +209,7 @@ export default function Globe({ onHoverContract, hoveredContract }) {
         onHoverContract={handlePointHover}
         reducedMotion={reducedMotion}
         rotating={rotating}
+        sweepAngleRef={sweepAngleRef}
       />
 
       <OrbitControls

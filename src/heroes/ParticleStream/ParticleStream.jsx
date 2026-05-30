@@ -67,9 +67,25 @@ function makeRand(seed) {
 
 // ─── particle field ───────────────────────────────────────────────────────────
 
+// ─── intensity wave state ─────────────────────────────────────────────────────
+// A region of high intensity travels L→R across the ribbons at flow speed.
+
+function makeWaveState() {
+  return {
+    active:    false,
+    xCenter:   -STREAM_WIDTH / 2 - 0.5, // starts off left edge
+    nextTimer: 2.5,
+  };
+}
+
+const WAVE_WIDTH    = 1.0;   // X half-width of the boost zone
+const WAVE_BOOST    = 1.55;  // size/brightness multiplier at wave center
+const WAVE_SPEED    = BASE_SPEED * 1.3; // slightly faster than average flow
+
 function ParticleField({ reducedMotion, hoveredId }) {
   const mainRef  = useRef();
   const trailRef = useRef();
+  const wave     = useRef(makeWaveState());
 
   // Assign ribbon index to each particle, respecting density weights
   const ribbonAssign = useMemo(() => {
@@ -174,6 +190,20 @@ function ParticleField({ reducedMotion, hoveredId }) {
       }
     }
 
+    // ── intensity wave tick ──
+    const wv = wave.current;
+    if (!wv.active) {
+      wv.nextTimer -= (1 / 60); // approximate delta via 60fps
+      if (wv.nextTimer <= 0) {
+        wv.active   = true;
+        wv.xCenter  = -halfW - 0.5; // enter from left
+        wv.nextTimer = 4.0 + Math.random() * 3.0;
+      }
+    } else {
+      wv.xCenter += WAVE_SPEED / 60;
+      if (wv.xCenter > halfW + 0.5) wv.active = false;
+    }
+
     let crimsonTrailIdx = 0;
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -216,16 +246,25 @@ function ParticleField({ reducedMotion, hoveredId }) {
 
       const combinedAlpha = depthScale * edgeFade;
 
-      sizeAttr.array[i] = bufs.sizes[i] * combinedAlpha * glowBoost;
+      // ── intensity wave boost ──
+      let waveBoost = 1.0;
+      if (wv.active) {
+        const wdist = Math.abs(x - wv.xCenter);
+        if (wdist < WAVE_WIDTH) {
+          waveBoost = 1.0 + (1.0 - wdist / WAVE_WIDTH) * (WAVE_BOOST - 1.0);
+        }
+      }
 
-      // Colour modulation: depth dims brightness
+      sizeAttr.array[i] = bufs.sizes[i] * combinedAlpha * glowBoost * waveBoost;
+
+      // Colour modulation: depth dims brightness + wave brightens
       if (ci) {
-        const bright = combinedAlpha * glowBoost;
+        const bright = combinedAlpha * glowBoost * waveBoost;
         colAttr.array[i * 3]     = THREE.MathUtils.lerp(0.28, 0.94, bright);
-        colAttr.array[i * 3 + 1] = THREE.MathUtils.lerp(0.02, 0.38, combinedAlpha);
-        colAttr.array[i * 3 + 2] = THREE.MathUtils.lerp(0.02, 0.44, combinedAlpha);
+        colAttr.array[i * 3 + 1] = THREE.MathUtils.lerp(0.02, 0.38, combinedAlpha * waveBoost);
+        colAttr.array[i * 3 + 2] = THREE.MathUtils.lerp(0.02, 0.44, combinedAlpha * waveBoost);
       } else {
-        const v = 0.50 + combinedAlpha * 0.40;
+        const v = (0.50 + combinedAlpha * 0.40) * Math.min(waveBoost, 1.35);
         colAttr.array[i * 3]     = v * 0.91;
         colAttr.array[i * 3 + 1] = v * 0.90;
         colAttr.array[i * 3 + 2] = v * 0.88;

@@ -17,7 +17,18 @@ function latLngToVec3(lat, lng, r) {
   );
 }
 
-export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, reducedMotion, mountDelay = 0, pulseSignal }) {
+// Longitude → angle in the same convention as the radar sweep's Y-rotation
+function lngToSweepAngle(lng) {
+  // Three.js rotates Y CCW looking down; lng maps to theta = (lng+180)*deg2rad
+  // We compare against the sweep's group.rotation.y offset
+  return (lng + 180) * (Math.PI / 180);
+}
+
+export default function DataPoint({
+  lat, lng, empresa, data, onHover, hovered,
+  reducedMotion, mountDelay = 0, pulseSignal,
+  sweepAngleRef, // { current: number } — shared radar sweep angle
+}) {
   const visualRef = useRef();
   const haloRef = useRef();
   const [mountScale, setMountScale] = useState(reducedMotion ? 1 : 0);
@@ -26,6 +37,10 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
   const position = useMemo(() => latLngToVec3(lat, lng, 1.02), [lat, lng]);
   const labelPos = useMemo(() => latLngToVec3(lat, lng, LABEL_RADIUS), [lat, lng]);
   const posNormal = useMemo(() => latLngToVec3(lat, lng, 1).normalize(), [lat, lng]);
+
+  // Point's longitude in sweep-angle space
+  const pointSweepAngle = useMemo(() => lngToSweepAngle(lng), [lng]);
+  const lastSweepCrossRef = useRef(false); // was sweep overlapping last frame?
 
   useEffect(() => {
     if (reducedMotion) return;
@@ -69,12 +84,10 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
     if (source?.clientX != null && source?.clientY != null) {
       return { x: source.clientX, y: source.clientY };
     }
-
     const rect = event?.currentTarget?.getBoundingClientRect?.();
     if (rect) {
       return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
     }
-
     return null;
   }, []);
 
@@ -102,6 +115,19 @@ export default function DataPoint({ lat, lng, empresa, data, onHover, hovered, r
 
     const hoverTarget = hoveredRef.current ? 1.8 : 1.0;
     hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * 0.14;
+
+    // ── radar sweep flash detection ──
+    if (!reducedMotion && sweepAngleRef?.current !== undefined) {
+      const sw = sweepAngleRef.current;
+      // Normalise diff to [-π, π]
+      let diff = ((pointSweepAngle - sw) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      if (diff > Math.PI) diff -= Math.PI * 2;
+      const sweepHit = Math.abs(diff) < 0.18; // ~10° window
+      if (sweepHit && !lastSweepCrossRef.current) {
+        pulseProgressRef.current = 0; // trigger flash
+      }
+      lastSweepCrossRef.current = sweepHit;
+    }
 
     let pulseMultiplier = 1;
     if (pulseProgressRef.current >= 0) {
