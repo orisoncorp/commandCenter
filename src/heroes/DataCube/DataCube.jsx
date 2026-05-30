@@ -267,7 +267,7 @@ export default function DataCube({ onHoverContract, hoveredContract }) {
   const { table } = useStream();
   const [rotating, setRotating] = useState(true);
   const rotateResumeRef = useRef(null);
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reducedMotion = false; // live monitoring display — animations are core
 
   const anchors = useMemo(() => ANCHOR_CONFIGS.map(cfg => ({
     ...cfg,

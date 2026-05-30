@@ -444,7 +444,7 @@ function StreamScene({ anchors, hoveredId, onHover, reducedMotion }) {
 export default function ParticleStream({ onHoverContract, hoveredContract }) {
   const { table } = useStream();
   const rotateResumeRef = useRef(null);
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reducedMotion = false; // live monitoring display — animations are core
 
   const anchors = useMemo(() => ANCHOR_DATA.map(a => ({
     ...a,

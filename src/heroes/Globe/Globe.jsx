@@ -52,7 +52,7 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
   useEffect(() => () => geo.dispose(), [geo]);
 
   useFrame((_, delta) => {
-    if (reducedMotion || !groupRef.current) return;
+    if (!groupRef.current) return;
     const s = state.current;
 
     if (s.phase === 'pause') {
@@ -73,7 +73,7 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
     sweepAngleRef.current = groupRef.current.rotation.y;
 
     const fade = Math.min(progress * 4, 1) * Math.min((1 - progress) * 4, 1);
-    if (matRef.current) matRef.current.opacity = 0.70 * fade;
+    if (matRef.current) matRef.current.opacity = 0.75 * fade;
 
     if (s.timer >= SWEEP_DURATION) {
       s.phase = 'pause';
@@ -84,7 +84,7 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
 
   return (
     <group ref={groupRef} raycast={() => null}>
-      <mesh geometry={geo} raycast={() => null}>
+      <mesh geometry={geo} raycast={() => null} renderOrder={10}>
         <meshBasicMaterial
           ref={matRef}
           color="#C0282A"
@@ -148,7 +148,9 @@ export default function Globe({ onHoverContract, hoveredContract }) {
   const prevEventCountRef = useRef(0);
   const rotateResumeRef   = useRef(null);
   const sweepAngleRef     = useRef(-999); // shared radar angle, -999 = inactive
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Command Center is a live monitoring display — animations are core, not decorative.
+  // prefers-reduced-motion is not respected here by design.
+  const reducedMotion = false;
 
   useEffect(() => {
     if (!events?.length || events.length <= prevEventCountRef.current) return;

@@ -397,7 +397,7 @@ export default function NetworkGraph({ onHoverContract, hoveredContract }) {
   const { table } = useStream();
   const [rotating, setRotating] = useState(true);
   const rotateResumeRef = useRef(null);
-  const reducedMotion   = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reducedMotion   = false; // live monitoring display — animations are core
 
   // Hub gets no contract — it's the system core, not a client
   const nodes = useMemo(() => NODE_DATA.map(node => ({
