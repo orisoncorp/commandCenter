@@ -78,9 +78,9 @@ function makeWaveState() {
   };
 }
 
-const WAVE_WIDTH    = 1.0;   // X half-width of the boost zone
-const WAVE_BOOST    = 1.55;  // size/brightness multiplier at wave center
-const WAVE_SPEED    = BASE_SPEED * 1.3; // slightly faster than average flow
+const WAVE_WIDTH    = 1.6;   // X half-width of the boost zone — wide band
+const WAVE_BOOST    = 2.80;  // size/brightness multiplier at wave center — clearly visible
+const WAVE_SPEED    = BASE_SPEED * 1.4; // slightly faster than average flow
 
 function ParticleField({ reducedMotion, hoveredId }) {
   const mainRef  = useRef();
@@ -170,7 +170,7 @@ function ParticleField({ reducedMotion, hoveredId }) {
   // Scratch scalars — no object allocation in useFrame
   const halfW = STREAM_WIDTH / 2;
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (reducedMotion || !mainRef.current) return;
 
     const elapsed = clock.getElapsedTime();
@@ -190,17 +190,17 @@ function ParticleField({ reducedMotion, hoveredId }) {
       }
     }
 
-    // ── intensity wave tick ──
+    // ── intensity wave tick (uses real delta) ──
     const wv = wave.current;
     if (!wv.active) {
-      wv.nextTimer -= (1 / 60); // approximate delta via 60fps
+      wv.nextTimer -= delta;
       if (wv.nextTimer <= 0) {
         wv.active   = true;
         wv.xCenter  = -halfW - 0.5; // enter from left
         wv.nextTimer = 4.0 + Math.random() * 3.0;
       }
     } else {
-      wv.xCenter += WAVE_SPEED / 60;
+      wv.xCenter += WAVE_SPEED * delta;
       if (wv.xCenter > halfW + 0.5) wv.active = false;
     }
 
@@ -260,11 +260,13 @@ function ParticleField({ reducedMotion, hoveredId }) {
       // Colour modulation: depth dims brightness + wave brightens
       if (ci) {
         const bright = combinedAlpha * glowBoost * waveBoost;
-        colAttr.array[i * 3]     = THREE.MathUtils.lerp(0.28, 0.94, bright);
-        colAttr.array[i * 3 + 1] = THREE.MathUtils.lerp(0.02, 0.38, combinedAlpha * waveBoost);
-        colAttr.array[i * 3 + 2] = THREE.MathUtils.lerp(0.02, 0.44, combinedAlpha * waveBoost);
+        colAttr.array[i * 3]     = Math.min(THREE.MathUtils.lerp(0.28, 0.94, bright), 1.0);
+        colAttr.array[i * 3 + 1] = Math.min(THREE.MathUtils.lerp(0.02, 0.38, combinedAlpha * waveBoost), 1.0);
+        colAttr.array[i * 3 + 2] = Math.min(THREE.MathUtils.lerp(0.02, 0.44, combinedAlpha * waveBoost), 1.0);
       } else {
-        const v = (0.50 + combinedAlpha * 0.40) * Math.min(waveBoost, 1.35);
+        // Wave boost makes offwhite particles visibly brighter (approaching white)
+        const wv2 = wv.active ? Math.min(waveBoost, 2.5) : 1.0;
+        const v = Math.min((0.50 + combinedAlpha * 0.40) * wv2, 1.0);
         colAttr.array[i * 3]     = v * 0.91;
         colAttr.array[i * 3 + 1] = v * 0.90;
         colAttr.array[i * 3 + 2] = v * 0.88;

@@ -7,265 +7,259 @@ import styles from './DataCube.module.css';
 import { useStream } from '../../data/DataProvider';
 import { calcStaggerDelay } from '../../motion/constants';
 
-// ─── voxel grid config ────────────────────────────────────────────────────────
+// ─── layer definitions ────────────────────────────────────────────────────────
+// Three concentric wireframe cubes. Outer = macro view, core = analytical depth.
 
-const GRID  = 5;          // 5×5×5 = 125 voxels
-const HALF  = (GRID - 1) / 2;
-const STEP  = 0.46;       // spacing between voxels (airy, not solid block)
-const VOXEL_SIZE = 0.055; // visual half-size of each voxel box
-
-// Total voxels
-const TOTAL = GRID * GRID * GRID; // 125
-
-// Flat index from (x,y,z)
-function idx(x, y, z) { return x * GRID * GRID + y * GRID + z; }
-
-// World position of voxel at grid coord (x,y,z)
-function voxelPos(x, y, z) {
-  return [(x - HALF) * STEP, (y - HALF) * STEP, (z - HALF) * STEP];
-}
-
-// ─── anchor configs (5 interactive voxels — hotspots) ────────────────────────
-// Placed at varied grid positions so they're spread through the volume
-
-const ANCHOR_CONFIGS = [
-  { empresa: 'Acme Corp',       gridPos: [0, 4, 0] },
-  { empresa: 'Beta Industries', gridPos: [4, 4, 4] },
-  { empresa: 'Gamma SA',        gridPos: [4, 0, 0] },
-  { empresa: 'Delta Corp',      gridPos: [0, 0, 4] },
-  { empresa: 'Epsilon Ltda',    gridPos: [2, 2, 2] },
+const LAYERS = [
+  { size: 2.40, opacity: 0.18, color: '#e8e6e1', speed: 0.0014, speedX: 0.0004 }, // outer — dim, slow
+  { size: 1.60, opacity: 0.30, color: '#e8e6e1', speed: 0.0022, speedX: 0.0007 }, // mid
+  { size: 1.00, opacity: 0.50, color: '#8B1A1A', speed: 0.0034, speedX: 0.0010 }, // core — crimson, faster
 ];
 
-const ANCHOR_IDX_SET = new Set(
-  ANCHOR_CONFIGS.map(a => idx(...a.gridPos))
-);
+// ─── anchor configs — distributed across layers ───────────────────────────────
+// Each anchor is placed at a corner of a specific layer cube.
+// corners: 8 per cube, indexed 0-7 → (sign_x, sign_y, sign_z) combos.
 
-const MOUNT_DELAYS = ANCHOR_CONFIGS.map((_, i) => calcStaggerDelay(i, 60));
+const CORNERS = [
+  [ 1,  1,  1], [-1,  1,  1], [ 1, -1,  1], [-1, -1,  1],
+  [ 1,  1, -1], [-1,  1, -1], [ 1, -1, -1], [-1, -1, -1],
+];
 
-// ─── per-voxel static data (computed once) ────────────────────────────────────
+const ANCHOR_CONFIGS = [
+  { empresa: 'Acme Corp',       layerIdx: 0, cornerIdx: 0 }, // outer: front-top-right
+  { empresa: 'Beta Industries', layerIdx: 0, cornerIdx: 6 }, // outer: back-bottom-right
+  { empresa: 'Gamma SA',        layerIdx: 1, cornerIdx: 3 }, // mid: front-bottom-left
+  { empresa: 'Delta Corp',      layerIdx: 1, cornerIdx: 5 }, // mid: back-top-left
+  { empresa: 'Epsilon Ltda',    layerIdx: 2, cornerIdx: 0 }, // core: front-top-right
+];
 
-const VOXEL_META = (() => {
-  // Seeded random for deterministic layout
-  let s = 17;
-  const r = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+const MOUNT_DELAYS = ANCHOR_CONFIGS.map((_, i) => calcStaggerDelay(i, 80));
 
-  const baseOpacity   = new Float32Array(TOTAL); // rest opacity [0.05..0.32]
-  const phase         = new Float32Array(TOTAL); // oscillation phase offset
-  const period        = new Float32Array(TOTAL); // oscillation period 3..5s
-  const isCrimsonHot  = new Uint8Array(TOTAL);   // ~15% crimson hotspots
-
-  for (let i = 0; i < TOTAL; i++) {
-    const isAnchor     = ANCHOR_IDX_SET.has(i);
-    isCrimsonHot[i]    = isAnchor ? 1 : (r() < 0.15 ? 1 : 0);
-    baseOpacity[i]     = isAnchor ? 0.82 : (isCrimsonHot[i] ? 0.28 + r() * 0.20 : 0.06 + r() * 0.24);
-    phase[i]           = r() * Math.PI * 2;
-    period[i]          = 3.0 + r() * 2.0;
-  }
-
-  return { baseOpacity, phase, period, isCrimsonHot };
-})();
-
-// ─── cascade wave state ───────────────────────────────────────────────────────
-
-function makeCascadeState() {
-  return {
-    active:    false,
-    axis:      0,    // 0=X, 1=Y, 2=Z
-    slicePos:  0,    // current slice position 0..GRID-1 (float)
-    nextTimer: 2.5,  // seconds until next wave
-  };
+function anchorBasePos(cfg) {
+  const half = LAYERS[cfg.layerIdx].size / 2;
+  const [sx, sy, sz] = CORNERS[cfg.cornerIdx];
+  return [sx * half, sy * half, sz * half];
 }
 
-// ─── voxel InstancedMesh ──────────────────────────────────────────────────────
+// ─── cross-layer data particle ────────────────────────────────────────────────
+// A single crimson particle that travels from core outward (or inward), reused.
 
-function VoxelGrid({ reducedMotion, anchors, hoveredEmpresa, onHover }) {
-  const meshRef  = useRef();
-  const cascade  = useRef(makeCascadeState());
-
-  // Dummy object for matrix mutation (allocated once)
-  const _obj = useMemo(() => new THREE.Object3D(), []);
-  const _col = useMemo(() => new THREE.Color(), []);
-
-  // Build initial matrices (positions never change — only color/brightness)
-  const { geo, mat, positions } = useMemo(() => {
-    const geo = new THREE.BoxGeometry(VOXEL_SIZE * 2, VOXEL_SIZE * 2, VOXEL_SIZE * 2);
-    const mat = new THREE.MeshBasicMaterial({ vertexColors: false, transparent: true });
-    const positions = [];
-
-    for (let x = 0; x < GRID; x++) {
-      for (let y = 0; y < GRID; y++) {
-        for (let z = 0; z < GRID; z++) {
-          positions.push(voxelPos(x, y, z));
-        }
-      }
-    }
-    return { geo, mat, positions };
-  }, []);
-
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-
-  // Set initial matrices once
-  useEffect(() => {
-    if (!meshRef.current) return;
-    for (let i = 0; i < TOTAL; i++) {
-      const [px, py, pz] = positions[i];
-      _obj.position.set(px, py, pz);
-      _obj.scale.setScalar(1);
-      _obj.updateMatrix();
-      meshRef.current.setMatrixAt(i, _obj.matrix);
-    }
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [positions, _obj]);
-
-  useFrame(({ clock }, delta) => {
-    if (!meshRef.current) return;
-    const t = clock.getElapsedTime();
-    const cs = cascade.current;
-
-    // ── cascade wave timing ──
-    if (!reducedMotion) {
-      if (!cs.active) {
-        cs.nextTimer -= delta;
-        if (cs.nextTimer <= 0) {
-          cs.active   = true;
-          cs.axis     = Math.floor(Math.random() * 3);
-          cs.slicePos = 0;
-          cs.nextTimer = 4.0 + Math.random() * 4.5;
-        }
-      } else {
-        cs.slicePos += delta * 2.8; // ~1.8s to traverse GRID=5 slices
-        if (cs.slicePos > GRID + 1) cs.active = false;
-      }
-    }
-
-    // ── per-voxel color update ──
-    for (let x = 0; x < GRID; x++) {
-      for (let y = 0; y < GRID; y++) {
-        for (let z = 0; z < GRID; z++) {
-          const i        = idx(x, y, z);
-          const isCrimson = VOXEL_META.isCrimsonHot[i] === 1;
-          const isAnchor  = ANCHOR_IDX_SET.has(i);
-
-          // Base breathing oscillation (anchors skip — always bright)
-          let opacity = VOXEL_META.baseOpacity[i];
-          if (!isAnchor && !reducedMotion) {
-            const wave = 0.5 + 0.5 * Math.sin(
-              (t / VOXEL_META.period[i]) * Math.PI * 2 + VOXEL_META.phase[i]
-            );
-            const range = isCrimson ? 0.18 : 0.22;
-            opacity = VOXEL_META.baseOpacity[i] * (1 - range) + VOXEL_META.baseOpacity[i] * range * wave * 2;
-            opacity = Math.min(opacity, isCrimson ? 0.55 : 0.35);
-          }
-
-          // ── cascade wave boost ──
-          if (!reducedMotion && cs.active) {
-            const coord = cs.axis === 0 ? x : cs.axis === 1 ? y : z;
-            const dist  = Math.abs(coord - cs.slicePos);
-            if (dist < 1.2) {
-              const boost = (1 - dist / 1.2) * 0.45;
-              opacity = Math.min(opacity + boost, 0.90);
-            }
-          }
-
-          // ── colour: crimson hotspots red, others offwhite ──
-          if (isCrimson) {
-            _col.setRGB(opacity * 0.94, opacity * 0.10, opacity * 0.10);
-          } else {
-            _col.setRGB(opacity * 0.91, opacity * 0.90, opacity * 0.88);
-          }
-
-          meshRef.current.setColorAt(i, _col);
-        }
-      }
-    }
-
-    meshRef.current.instanceColor.needsUpdate = true;
-  });
-
-  return (
-    <instancedMesh
-      ref={meshRef}
-      args={[geo, mat, TOTAL]}
-      raycast={() => null}
-    >
-      <meshBasicMaterial vertexColors transparent opacity={1} depthWrite={false} />
-    </instancedMesh>
-  );
+function makeParticleState() {
+  return { active: false, progress: 0, nextTimer: 3.0, direction: 1 }; // direction: 1=out, -1=in
 }
 
-// ─── cube wireframe edges ─────────────────────────────────────────────────────
+// ─── layer wireframe cubes ────────────────────────────────────────────────────
 
-function CubeEdges() {
-  const edgesGeo = useMemo(() => {
-    const side = (GRID - 1) * STEP + STEP;
-    const box  = new THREE.BoxGeometry(side, side, side);
-    const e    = new THREE.EdgesGeometry(box);
+function LayerCube({ size, color, opacity, layerRef }) {
+  const geo = useMemo(() => {
+    const box = new THREE.BoxGeometry(size, size, size);
+    const e   = new THREE.EdgesGeometry(box);
     box.dispose();
     return e;
-  }, []);
+  }, [size]);
 
-  useEffect(() => () => edgesGeo.dispose(), [edgesGeo]);
+  useEffect(() => () => geo.dispose(), [geo]);
 
   return (
-    <lineSegments geometry={edgesGeo} raycast={() => null}>
-      <lineBasicMaterial color="#e8e6e1" transparent opacity={0.12} depthWrite={false} />
+    <lineSegments ref={layerRef} geometry={geo} raycast={() => null}>
+      <lineBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
     </lineSegments>
   );
 }
 
-// ─── central glow ─────────────────────────────────────────────────────────────
+// ─── cross-layer particle ─────────────────────────────────────────────────────
 
-function CoreGlow() {
+function CrossLayerParticle({ reducedMotion }) {
+  const meshRef = useRef();
+  const state   = useRef(makeParticleState());
+
+  // Scratch vector — allocated once
+  const _pos = useRef(new THREE.Vector3());
+
+  useFrame((_, delta) => {
+    if (reducedMotion || !meshRef.current) return;
+    const s = state.current;
+
+    if (!s.active) {
+      s.nextTimer -= delta;
+      if (s.nextTimer <= 0) {
+        s.active    = true;
+        s.progress  = 0;
+        s.direction = Math.random() < 0.5 ? 1 : -1;
+        s.nextTimer = 4.0 + Math.random() * 3.0;
+      }
+      meshRef.current.visible = false;
+      return;
+    }
+
+    s.progress += delta * 0.55; // ~1.8s to traverse
+
+    if (s.progress >= 1) {
+      s.active = false;
+      meshRef.current.visible = false;
+      return;
+    }
+
+    meshRef.current.visible = true;
+
+    // Travel from core corner to outer corner (or reverse)
+    const coreHalf  = LAYERS[2].size / 2;
+    const outerHalf = LAYERS[0].size / 2;
+    const t         = s.direction === 1 ? s.progress : 1 - s.progress;
+
+    _pos.current.set(
+      THREE.MathUtils.lerp(coreHalf, outerHalf, t),
+      THREE.MathUtils.lerp(coreHalf, outerHalf, t),
+      THREE.MathUtils.lerp(coreHalf, outerHalf, t),
+    );
+    meshRef.current.position.copy(_pos.current);
+
+    // Fade in/out at ends
+    const fade = Math.min(s.progress * 4, 1) * Math.min((1 - s.progress) * 4, 1);
+    meshRef.current.material.opacity = fade * 0.9;
+    const sc = 1 + fade * 0.6;
+    meshRef.current.scale.setScalar(sc);
+  });
+
   return (
-    <mesh raycast={() => null}>
-      <sphereGeometry args={[0.30, 24, 24]} />
-      <meshBasicMaterial color="#8B1A1A" transparent opacity={0.05} side={THREE.BackSide} depthWrite={false} />
+    <mesh ref={meshRef} visible={false} raycast={() => null}>
+      <sphereGeometry args={[0.025, 6, 6]} />
+      <meshBasicMaterial color="#F06070" transparent opacity={0} depthWrite={false} />
     </mesh>
   );
 }
 
-// ─── data cube scene ──────────────────────────────────────────────────────────
+// ─── connection lines between corresponding corners across layers ──────────────
 
-function DataCubeScene({ anchors, hoveredEmpresa, onHover, reducedMotion, rotating }) {
-  const groupRef = useRef();
+function CrossLayerLines() {
+  // Connect 4 corners of outer to corresponding corners of mid, and mid to core
+  const geo = useMemo(() => {
+    const pairs = [];
+    // Use only 4 corners (alternate) for visual clarity — not all 8
+    const connCorners = [0, 2, 5, 7];
+    for (const ci of connCorners) {
+      const [sx, sy, sz] = CORNERS[ci];
+      for (let li = 0; li < LAYERS.length - 1; li++) {
+        const hA = LAYERS[li].size / 2;
+        const hB = LAYERS[li + 1].size / 2;
+        pairs.push(
+          sx * hA, sy * hA, sz * hA,
+          sx * hB, sy * hB, sz * hB,
+        );
+      }
+    }
+    const buf = new Float32Array(pairs);
+    const g   = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(buf, 3));
+    return g;
+  }, []);
 
-  useFrame(() => {
-    if (!groupRef.current || !rotating || reducedMotion) return;
-    groupRef.current.rotation.y += 0.0018;
-    groupRef.current.rotation.x += 0.0006;
+  useEffect(() => () => geo.dispose(), [geo]);
+
+  return (
+    <lineSegments geometry={geo} raycast={() => null}>
+      <lineBasicMaterial color="#e8e6e1" transparent opacity={0.07} depthWrite={false} />
+    </lineSegments>
+  );
+}
+
+// ─── core glow ────────────────────────────────────────────────────────────────
+
+function CoreGlow({ reducedMotion }) {
+  const matRef  = useRef();
+  const baseOp  = 0.06;
+
+  useFrame(({ clock }) => {
+    if (!matRef.current) return;
+    if (reducedMotion) { matRef.current.opacity = baseOp; return; }
+    const t  = clock.getElapsedTime();
+    const p  = 0.5 + 0.5 * Math.sin((t / 2.5) * Math.PI * 2);
+    matRef.current.opacity = baseOp * (0.7 + 0.6 * p);
+  });
+
+  return (
+    <mesh raycast={() => null}>
+      <sphereGeometry args={[0.28, 20, 20]} />
+      <meshBasicMaterial ref={matRef} color="#8B1A1A" transparent opacity={baseOp} side={THREE.BackSide} depthWrite={false} />
+    </mesh>
+  );
+}
+
+// ─── nested cube scene ────────────────────────────────────────────────────────
+
+function NestedCubeScene({ anchors, hoveredEmpresa, onHover, reducedMotion, rotating }) {
+  const groupRef  = useRef();
+  const layerRefs = useRef(LAYERS.map(() => ({ current: null })));
+
+  // Base rotation state (written in useFrame — no state update)
+  const rotState = useRef({ y: 0, x: 0 });
+
+  // Per-anchor world positions — recomputed when layers rotate (needs ref to groups)
+  // Anchor positions are computed in world space by the layer group's rotation.
+  // We store 3 group refs (one per layer) to read their current matrix.
+  const layerGroupRefs = useRef([null, null, null]);
+
+  // Scratch vector for anchor position calc
+  const _anchorScratch = useRef(new THREE.Vector3());
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+
+    if (!reducedMotion && rotating) {
+      // Global slow rotation of the whole structure
+      groupRef.current.rotation.y += 0.0012;
+      groupRef.current.rotation.x += 0.0003;
+
+      // Differential per-layer rotation
+      for (let li = 0; li < layerGroupRefs.current.length; li++) {
+        const gr = layerGroupRefs.current[li];
+        if (!gr) continue;
+        gr.rotation.y += LAYERS[li].speed;
+        gr.rotation.x += LAYERS[li].speedX;
+      }
+    }
   });
 
   return (
     <group ref={groupRef}>
-      <CubeEdges />
-      <CoreGlow />
+      <CoreGlow reducedMotion={reducedMotion} />
+      <CrossLayerLines />
+      <CrossLayerParticle reducedMotion={reducedMotion} />
 
-      <VoxelGrid
-        reducedMotion={reducedMotion}
-        anchors={anchors}
-        hoveredEmpresa={hoveredEmpresa}
-        onHover={onHover}
-      />
-
-      {anchors.map((anchor, i) => {
-        const [px, py, pz] = voxelPos(...anchor.gridPos);
-        const labelPos = [px, py + 0.18, pz];
-        return (
-          <InteractivePoint
-            key={anchor.empresa}
-            position={[px, py, pz]}
-            posNormal={null}
-            labelPosition={labelPos}
-            label={anchor.empresa}
-            data={anchor.contract}
-            onHover={onHover}
-            hovered={hoveredEmpresa === anchor.empresa}
-            reducedMotion={reducedMotion}
-            mountDelay={MOUNT_DELAYS[i]}
-            radius={0.038}
+      {LAYERS.map((layer, li) => (
+        <group key={li} ref={el => { layerGroupRefs.current[li] = el; }}>
+          <LayerCube
+            size={layer.size}
+            color={layer.color}
+            opacity={layer.opacity}
           />
-        );
-      })}
+
+          {/* Anchors belonging to this layer */}
+          {anchors
+            .map((anchor, i) => ({ anchor, i }))
+            .filter(({ anchor }) => anchor.layerIdx === li)
+            .map(({ anchor, i }) => {
+              const [bx, by, bz] = anchorBasePos(anchor);
+              const labelPos = [bx * 1.08, by * 1.08 + 0.10, bz * 1.08];
+              return (
+                <InteractivePoint
+                  key={anchor.empresa}
+                  position={[bx, by, bz]}
+                  posNormal={null}
+                  labelPosition={labelPos}
+                  label={anchor.empresa}
+                  data={anchor.contract}
+                  onHover={onHover}
+                  hovered={hoveredEmpresa === anchor.empresa}
+                  reducedMotion={reducedMotion}
+                  mountDelay={MOUNT_DELAYS[i]}
+                  radius={li === 2 ? 0.044 : 0.036}
+                />
+              );
+            })
+          }
+        </group>
+      ))}
     </group>
   );
 }
@@ -311,7 +305,7 @@ export default function DataCube({ onHoverContract, hoveredContract }) {
   return (
     <Canvas
       className={styles.canvas}
-      camera={{ position: [0, 0, 3.4], fov: 40, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, 3.8], fov: 38, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: false }}
       onCreated={({ gl }) => gl.setClearColor('#0a0a0a', 1)}
     >
@@ -319,7 +313,7 @@ export default function DataCube({ onHoverContract, hoveredContract }) {
       <pointLight position={[3, 3, 3]}   intensity={0.35} color="#ffffff" />
       <pointLight position={[-3, -2, -2]} intensity={0.10} color="#8B1A1A" />
 
-      <DataCubeScene
+      <NestedCubeScene
         anchors={anchors}
         hoveredEmpresa={hoveredContract?.empresa || null}
         onHover={handleHover}

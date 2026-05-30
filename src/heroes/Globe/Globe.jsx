@@ -27,22 +27,15 @@ const SWEEP_DURATION = 7.0;  // seconds for one full 2π sweep
 const SWEEP_PAUSE    = 3.0;  // seconds pause after sweep completes
 
 function RadarSweep({ sweepAngleRef, reducedMotion }) {
-  const groupRef  = useRef();
-  const matRef    = useRef();
-  const state     = useRef({ phase: 'sweep', timer: 0 }); // 'sweep' | 'pause'
+  const groupRef = useRef();
+  const matRef   = useRef();
+  const state    = useRef({ phase: 'sweep', timer: 0 }); // 'sweep' | 'pause'
 
-  // Semi-transparent wedge: a CylinderGeometry with thetaLength = small arc
-  // oriented along Y — the sweep plane
+  // Meridian plane: tall rectangle that stands vertical and rotates around Y axis.
+  // DoubleSide so it's visible from both front and back as it sweeps.
   const geo = useMemo(() => {
-    return new THREE.CylinderGeometry(
-      1.06, 1.06,   // top/bottom radius (just outside globe surface)
-      0.001,         // height (thin disk)
-      48,            // radial segments
-      1,             // height segments
-      false,         // open ended
-      0,             // thetaStart
-      0.18,          // thetaLength — ~10° arc
-    );
+    // Width covers a ~25° arc at the globe surface, height covers full diameter + overshoot
+    return new THREE.PlaneGeometry(0.48, 2.20);
   }, []);
 
   useEffect(() => () => geo.dispose(), [geo]);
@@ -58,20 +51,19 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
         s.timer = 0;
         groupRef.current.rotation.y = 0;
       }
-      sweepAngleRef.current = -999; // no active sweep — no flashes
+      sweepAngleRef.current = -999;
       if (matRef.current) matRef.current.opacity = 0;
       return;
     }
 
-    // sweeping
     s.timer += delta;
     const progress = s.timer / SWEEP_DURATION;
     groupRef.current.rotation.y = progress * Math.PI * 2;
     sweepAngleRef.current = groupRef.current.rotation.y;
 
-    // Fade in at start, fade out near end
-    const fade = Math.min(progress * 6, 1) * Math.min((1 - progress) * 6, 1);
-    if (matRef.current) matRef.current.opacity = 0.28 * fade;
+    // Fade in/out at sweep start/end
+    const fade = Math.min(progress * 5, 1) * Math.min((1 - progress) * 5, 1);
+    if (matRef.current) matRef.current.opacity = 0.32 * fade;
 
     if (s.timer >= SWEEP_DURATION) {
       s.phase = 'pause';
@@ -80,9 +72,19 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
     }
   });
 
+  // Plane sits at x=0 initially (faces camera), needs to be pushed to globe surface
+  // We place it at z=0, x=1.06 (globe radius) and rotate so it stands as a meridian.
+  // Easier: keep it at origin but tilted — the plane normal points along Z by default.
+  // Rotate 90° around Y so it aligns as a N-S meridian slice, then groupRef rotates around Y.
   return (
     <group ref={groupRef} raycast={() => null}>
-      <mesh geometry={geo} raycast={() => null}>
+      {/* Plane rotated so it faces along X — stands as a vertical meridian slice */}
+      <mesh
+        geometry={geo}
+        position={[0, 0, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        raycast={() => null}
+      >
         <meshBasicMaterial
           ref={matRef}
           color="#8B1A1A"
