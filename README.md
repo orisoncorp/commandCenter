@@ -1,12 +1,10 @@
 # Orison Command Center
 
-Sistema de visualização operacional B2B — dashboard de alto impacto configurável por vertical de cliente.
+**v1.0 — validado. Pronto para demo, piloto e uso interno.**
 
-## Overview
+Sistema de visualização operacional B2B — dashboard de alto impacto configurável por vertical de cliente. Dark, imersivo, identidade Orison. Um hero 3D central comunica a natureza do negócio antes de qualquer número ser lido. Tudo o mais é composição de peças plug-and-play orientada por um config JSON.
 
-O Command Center é uma superfície de monitoramento executivo construída sobre peças plug-and-play: um hero 3D central que comunica a natureza do negócio antes de qualquer número ser lido, painéis laterais com KPIs configuráveis e uma barra inferior de detalhe.
-
-Cada deploy é uma composição de peças existentes orientada por um config JSON — sem código novo para mudar de vertical.
+---
 
 ## Stack
 
@@ -18,22 +16,26 @@ Cada deploy é uma composição de peças existentes orientada por um config JSO
 | Data | React Context (DataProvider) + adapters intercambiáveis |
 | Design | Orison Brand System (orisonDesign.md + orisonMotion.md) |
 
+---
+
 ## Estrutura de Pastas
 
 ```
 src/
 ├── components/
-│   ├── atoms/          # Badge, Label, Value, Delta, Dot, Timestamp
-│   ├── molecules/      # KpiSimple, KpiSpark, KpiRing, KpiMetric, ChartBar, DataTable, EventFeed, InsightCard
+│   ├── atoms/          # Badge, Label, Delta, Dot, Timestamp
+│   ├── molecules/      # KpiSimple, KpiSpark, KpiRing, KpiMetric,
+│   │                   # ChartBar, DataTable, EventFeed, InsightCard
 │   ├── organisms/      # Panel, HeaderBar, BottomBar, HeroContainer, HeroToggle
 │   └── templates/      # CommandCenter (layout raiz)
 ├── heroes/
 │   ├── Globe/          # Esfera 3D georreferenciada
 │   ├── NetworkGraph/   # Hub radial com partículas
 │   ├── ParticleStream/ # Ribbons de partículas em fluxo
-│   └── DataCube/       # Cubos wireframe concêntricos
+│   ├── DataCube/       # Cubos wireframe concêntricos
+│   └── shared/         # DetailPanel, InteractivePoint
 ├── data/
-│   ├── adapters/       # mock.js (production-ready); rest, websocket, notion (planned)
+│   ├── adapters/       # mock.js (ready); rest, websocket, notion (roadmap)
 │   ├── DataProvider.jsx
 │   └── transforms.js
 ├── configs/            # JSON configs por vertical (ex: orison-internal.json)
@@ -41,34 +43,40 @@ src/
 └── tokens/             # CSS custom properties (colors, typography, spacing, motion, dataviz)
 ```
 
+---
+
 ## Como Rodar
 
 ```bash
 cd orison-command-center
 npm install
 npm run dev
+# → http://localhost:5173
 ```
 
-Abre em `http://localhost:5173` com hot reload.
-
 Build de produção:
+
 ```bash
 npm run build
 # output em dist/
 ```
 
+---
+
 ## Os 4 Heroes
 
 O hero ocupa o centro visual e comunica a natureza do negócio de forma imediata.
 
-| Hero | Conceito | Use quando |
-|------|----------|-----------|
-| **Globe** | Esfera 3D com pontos georreferenciados e radar sweep | Vertical tem dimensão geográfica — filiais, logística, cobertura |
-| **NetworkGraph** | Hub radial — nó central + satélites com partículas bidirecionais | Vertical é sobre conexões — SaaS B2B, integrações, ecossistema de parceiros |
-| **ParticleStream** | 6 ribbons com 480 partículas em fluxo contínuo | Vertical é sobre volume/throughput — e-commerce, meios de pagamento, pipelines |
-| **DataCube** | Cubos wireframe concêntricos com rotações independentes | Vertical é sobre análise multidimensional — BI, controladoria, performance estratégica |
+| Hero | Conceito Visual | Use quando |
+|------|----------------|-----------|
+| **Globe** | Esfera 3D georreferenciada — pins de contrato, radar sweep crimson, connection lines | Vertical tem dimensão geográfica: filiais, logística, cobertura regional |
+| **NetworkGraph** | Hub Radial — nó central + satélites com partículas bidirecionais nas edges | Vertical é sobre conexões: SaaS B2B, integrações, ecossistema de parceiros |
+| **ParticleStream** | Rio de Fitas — 6 ribbons, 480 partículas em fluxo contínuo com intensity wave | Vertical é sobre volume/throughput: e-commerce, pagamentos, pipelines |
+| **DataCube** | 2 cubos wireframe concêntricos com rotações independentes, parallax e partícula cross-layer | Vertical é sobre análise multidimensional: BI, controladoria, performance estratégica |
 
-Todos os heroes são interativos: hover em qualquer entidade pausa a rotação e abre um painel de detalhe com dados em tempo real.
+Todos os heroes são interativos: hover em qualquer entidade pausa a rotação e abre um DetailPanel flutuante (glass-morphism) com dados em tempo real.
+
+---
 
 ## Configuração por Vertical
 
@@ -84,13 +92,15 @@ Cada vertical é um JSON em `src/configs/`:
     ],
     "right": [...]
   },
-  "bottom": { "type": "data-table | event-feed", "source": "SOURCE_KEY", "columns": [...] },
+  "bottom": { "type": "data-table", "columns": ["col1", "col2"] },
   "header": { "kpis": ["KEY1", "KEY2"], "showTimestamp": true },
   "data": { "adapter": "mock | rest | websocket | notion", "refreshInterval": 3000 }
 }
 ```
 
-Ver `src/configs/orison-internal.json` como referência.
+Ver `src/configs/orison-internal.json` como referência de deploy atual.
+
+---
 
 ## Guia de Deploy por Vertical
 
@@ -100,13 +110,28 @@ Contém:
 - Inventário de todas as peças com metadados de seleção (use-when, avoid-when, data-shape)
 - Árvores de decisão: tipo de vertical → hero + composição de painéis
 - Input schema: questionário que vira config JSON
-- Runbook passo a passo (8 passos)
+- Runbook passo a passo (8 etapas)
 - Quality gates e anti-patterns
 - Exemplo completo de migração (E-commerce de Médio Porte)
 
+Este documento é a fonte primária para agentes Elpis de migração.
+
+---
+
 ## Design System
 
-- `orisonDesign.md` — paleta, tipografia, espaçamento, componentes, regras de cor
-- `orisonMotion.md` — easing, durações, transforms, sequências de animação, governance
+- `orisonDesign.md` — paleta, tipografia, espaçamento, tokens glass, padrão de cards sem bordas
+- `orisonMotion.md` — easing, durações, animações dos heroes, live-update fade-swap, loading coordenado
 
 Tokens disponíveis via CSS custom properties prefixadas: `--color-*`, `--font-*`, `--space-*`, `--motion-*`, `--dv-*`.
+
+---
+
+## Roadmap
+
+Não bloqueantes para demo/piloto. Necessários antes de operação contínua com cliente:
+
+- [ ] **Adapters reais** — `rest.js`, `websocket.js`, `notion.js` (hoje só `mock.js`)
+- [ ] **Responsividade ampla** — breakpoints abaixo de 900px para tablet/mobile
+- [ ] **Error states** — adapter failure, data stale, connection lost com UI adequada
+- [ ] **Performance em hardware fraco** — profiling Three.js em GPUs integradas; fallback estático se FPS < 30

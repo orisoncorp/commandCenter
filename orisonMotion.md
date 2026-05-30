@@ -226,13 +226,20 @@ molecules:
     duration: "{duration.dramatic}"
     easing: "{easing.state}"
     context: "Contagem numérica animada (KPIs, métricas) com indicador direcional de crescimento"
-    mount-behavior: "count 0 → target over duration.dramatic (900ms), easing state"
-    live-update-behavior: "fade-swap — opacity 1→0.4 (120ms), swap value, opacity 0.4→1 (200ms)"
+    mount-behavior: "count 0 → target over duration.dramatic (900ms), easing cubic-bezier cubic-out"
+    live-update-behavior: "fade-swap — opacity 1→0.65 (100ms), swap value, opacity 0.65→1 (180ms)"
     live-update-note: >
       Nunca interpolar o valor em live updates — o counter animado (0→valor) é
-      exclusivo do mount. Atualizações ao vivo usam fade-swap: o número "respira"
-      (opacity nunca vai a zero), o valor troca durante o atenuamento.
-      opacity floor: 0.4. Fade-out: 120ms. Fade-in: 200ms.
+      exclusivo do mount (isMountRef). Atualizações ao vivo usam fade-swap: o número
+      "respira" suavemente. opacity floor: 0.65 (nunca abaixo de 0.5 — evita flash
+      agressivo). Fade-out: 100ms. Fade-in: 180ms. Guard por prevTargetRef previne
+      re-execução quando valor não mudou de fato.
+    implementation: >
+      useCountUp(target) em src/motion/useCountUp.js.
+      isMountRef: true no primeiro render, false após primeiro efeito.
+      prevTargetRef: valor anterior para guard de igualdade.
+      Não chamar count-up em live updates — apenas fade-swap.
+    delta-indicator: "▲ / ▼ em 6px, inline antes do valor — texto colorido puro sem box"
 
   micro-typewriter:
     properties: "text content, cursor visibility"
@@ -547,14 +554,37 @@ organisms:
       then: "static crimson border"
 
   command-center:
+    status: "v1.0 validado — production-ready"
     layout:
       header-height: "48px"
-      hero-viewport: "50-60%"
-      left-panel: "240-320px"
-      right-panel: "240-320px"
-      bottom-bar: "180-240px"
-      max-widgets: 12
-      panel-opacity: 0.85
+      hero-viewport: "50-60% da área central"
+      left-panel: "280px"
+      right-panel: "280px"
+      bottom-bar: "200px (3 slots: insight | table | feed)"
+      panel-fade-edge: "64px gradient para o hero"
+      material: "glass-surface / glass-header — ver orisonDesign.md Glass Material System"
+
+    coordinated-load:
+      description: "Stagger de entrada coordenado no mount inicial do Command Center"
+      root: "fade-in opacity 0→1, 600ms, easing.enter"
+      header: "slide-down translateY(-8px)→0 + opacity, 500ms, emphasis, delay 0ms"
+      bottom: "slide-up translateY(8px)→0 + opacity, 500ms, emphasis, delay 100ms"
+      panel-items: "stagger translateY(6px)→0 + opacity, 500ms, emphasis"
+      panel-item-delays:
+        - "item 1: 80ms"
+        - "item 2: 130ms"
+        - "item 3: 180ms"
+        - "item 4: 230ms"
+        - "item 5: 280ms"
+        - "item 6: 330ms"
+
+    card-hover:
+      properties: "background"
+      to: "rgba(255,255,255,0.02)"
+      duration: "200ms"
+      easing: "{easing.state}"
+      description: "Lift mínimo de fundo no hover de cards sem bordas"
+
     hero-3d:
       wireframe-color: "{colors.offwhite}"
       wireframe-opacity: 0.15
@@ -563,13 +593,59 @@ organisms:
       rotation-speed: "0.002 rad/frame"
       rotation-axis: "Y"
       rotation-easing: "linear"
-      background: "{colors.black}"
-    types:
-      - "globe (operações distribuídas)"
-      - "network (conexões, data flows)"
-      - "particles (processamento, throughput)"
-      - "molecular (composição, dependencies)"
-      - "cube (dados multidimensionais)"
+      background: "radial multicamada — núcleo crimson tênue → midnight → black + star field + vignette"
+      interaction: "hover pausa rotação + abre DetailPanel (scale 0.96→1 + opacity, 280ms emphasis)"
+
+    heroes-v1:
+      Globe:
+        concept: "Esfera 3D georreferenciada"
+        animations:
+          - "Rotação Y contínua (0.002 rad/frame, linear)"
+          - "Radar sweep: arco crimson girando sobre a superfície"
+          - "Connection lines entre nós ativos (fluxo animado)"
+          - "Pins de contrato: pontos interativos na superfície da esfera"
+        interaction: "Hover em pin → pausa rotação + DetailPanel com dados do contrato"
+
+      NetworkGraph:
+        concept: "Hub Radial com partículas bidirecionais"
+        animations:
+          - "Nó central fixo, satélites em órbita suave"
+          - "Partículas bidirecionais animadas ao longo das edges"
+          - "Pulso de expansão periódico a partir do hub"
+        interaction: "Hover em nó → destaca conexões + DetailPanel"
+
+      ParticleStream:
+        concept: "Rio de Fitas — 6 ribbons com 480 partículas"
+        animations:
+          - "6 ribbons em fluxo contínuo com velocidades ligeiramente distintas"
+          - "Intensity wave: ondulação de densidade que percorre o campo periodicamente"
+          - "Partículas individuais com ciclo de vida: fade-in → viagem → fade-out"
+        interaction: "Hover → desacelera ribbons, foco no ponto de entrada"
+
+      DataCube:
+        concept: "2 cubos wireframe concêntricos"
+        animations:
+          - "Cubo externo: rotação lenta em X e Y"
+          - "Cubo interno: rotação em eixos diferentes, velocidade ligeiramente maior"
+          - "Parallax no hover: cubos reagem ao mouse de forma independente"
+          - "Partícula cross-layer: atravessa as camadas dos cubos periodicamente"
+        interaction: "Hover → parallax intensificado + destaque das arestas"
+
+    detail-panel:
+      trigger: "hover em entidade interativa do hero"
+      enter:
+        properties: "opacity, transform: scale"
+        from: "opacity: 0; scale(0.96)"
+        to: "opacity: 1; scale(1)"
+        duration: "280ms"
+        easing: "{easing.emphasis}"
+        transform-origin: "left center | right center (baseado no lado de abertura)"
+      exit:
+        properties: "opacity, transform"
+        duration: "200ms"
+        easing: "{easing.exit}"
+      positioning: "clamp dentro da viewport com PANEL_MARGIN de 16px"
+      style: "glass-morphism — ver orisonDesign.md Glass Material System"
 
 # ─────────────────────────────────────────────
 # TEMPLATES — Contextos de aplicação

@@ -519,6 +519,88 @@ hover e foco.
 
 ---
 
+## Glass Material System
+
+Introduzido no Command Center v1.0. Define o sistema de superfícies translúcidas para dashboards imersivos onde múltiplas camadas de informação coexistem sobre um fundo atmosférico.
+
+### Tokens glass
+
+Adicionados ao `src/tokens/colors.css`:
+
+| Token | Valor | Uso |
+|-------|-------|-----|
+| `--color-glass-surface` | `rgba(13,13,15,0.72)` | Painéis laterais e bottom bar |
+| `--color-glass-header` | `rgba(17,17,19,0.88)` | Header bar (mais opaco, mais alto na hierarquia visual) |
+| `--color-glass-detail` | `rgba(13,13,15,0.92)` | DetailPanel flutuante (quase opaco — leitura de dados) |
+| `--color-glass-border` | `rgba(255,255,255,0.04)` | Divisores internos entre cards e slots |
+| `--color-glass-shadow` | `rgba(139,26,26,0.12)` | Sombra com toque crimson para painéis flutuantes |
+
+### Material unificado
+
+Header, painéis laterais e bottom bar compartilham o mesmo "vidro escurecido":
+
+```css
+background: var(--color-glass-surface);   /* ou glass-header */
+backdrop-filter: blur(10px);              /* 12px no header */
+-webkit-backdrop-filter: blur(10px);
+```
+
+Não usar `border` para delimitar painéis. Usar fades de gradiente nos limites com o hero:
+
+```css
+/* Exemplo: fade lateral do painel esquerdo */
+.left::after {
+  content: '';
+  position: absolute;
+  top: 0; right: -64px; width: 64px; height: 100%;
+  background: linear-gradient(to right, var(--color-glass-surface), transparent);
+  pointer-events: none;
+}
+```
+
+### Cards sem bordas
+
+KPI cards e blocos de informação dentro dos painéis não têm `border` individual. Separação por:
+
+1. Linha sutil `border-bottom: 1px solid var(--color-glass-border)` — apenas entre itens
+2. Espaçamento generoso (`padding: var(--space-3) var(--space-2)`)
+3. Hover discreto: `background: rgba(255,255,255,0.02)`
+
+```css
+.card {
+  background: transparent;
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-glass-border);
+}
+.card:last-child { border-bottom: none; }
+.card:hover { background: rgba(255, 255, 255, 0.02); }
+```
+
+### DetailPanel glass-morphism
+
+Painéis flutuantes de detalhe (hover sobre entidades 3D) usam `glass-detail`:
+
+```css
+background: var(--color-glass-detail);
+border: 1px solid rgba(139, 26, 26, 0.15);
+box-shadow:
+  0 8px 32px rgba(0,0,0,0.6),
+  0 0 0 1px rgba(255,255,255,0.03),
+  inset 0 1px 0 rgba(255,255,255,0.04);
+backdrop-filter: blur(16px);
+```
+
+Sem aspecto de modal: sem overlay, sem `border` dura, sombra serve como delimitador visual.
+
+### Regras
+
+- Nunca use `border` como separador de painel — use fade de gradiente ou ausência de borda.
+- Nunca use `background` sólido em painéis que sobrepoêm o hero 3D — mantém a sensação de profundidade.
+- `backdrop-filter: blur()` requer que o pai não tenha `overflow: hidden` ou `will-change: transform`.
+- Em contextos sem suporte a `backdrop-filter`: `glass-surface` continua funcional por ter opacidade suficiente (0.72).
+
+---
+
 ## Shapes
 
 A linguagem de formas da Orison é definida por **austeridade geométrica**.
