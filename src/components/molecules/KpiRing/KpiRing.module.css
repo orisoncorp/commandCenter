@@ -73,6 +73,6 @@
   font-size: var(--micro-size);
   font-weight: var(--micro-weight);
   letter-spacing: var(--micro-spacing);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
 }

@@ -40,7 +40,7 @@
   font-family: var(--font-body);
   font-size: var(--micro-size);
   font-weight: var(--micro-weight);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   letter-spacing: var(--micro-spacing);
   text-transform: uppercase;
 }
@@ -49,5 +49,5 @@
   font-family: var(--font-body);
   font-size: var(--body-size);
   font-weight: var(--body-weight);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }

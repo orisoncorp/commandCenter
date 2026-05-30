@@ -1,9 +1,9 @@
 import styles from './InsightCard.module.css';
 import Badge from '../../atoms/Badge/Badge';
 
-export default function InsightCard({ title, content, timestamp, type = 'auto' }) {
+export default function InsightCard({ title, content, timestamp, type = 'auto', variant }) {
   return (
-    <div className={styles.card}>
+    <div className={variant === 'bottom' ? styles.cardBottom : styles.card}>
       <div className={styles.header}>
         <Badge variant={type === 'auto' ? 'crimson' : 'neutral'}>
           {type === 'auto' ? 'AI INSIGHT' : 'NOTA'}

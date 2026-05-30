@@ -143,6 +143,9 @@ export default function CommandCenter({ config }) {
 
       <BottomBar>
         <div className={styles.bottomInner}>
+          {insights?.[0] && (
+            <InsightCard {...insights[0]} variant="bottom" />
+          )}
           {bottomConfig && data && (
             <Widget widgetConfig={bottomConfig} data={data} table={table} insights={insights} />
           )}

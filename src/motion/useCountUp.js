@@ -9,12 +9,14 @@ export function useCountUp(target, duration = DURATION.dramatic) {
   const isMountRef = useRef(true);
   const rafRef = useRef(null);
   const swapTimerRef = useRef(null);
+  const prevTargetRef = useRef(null);
 
   useEffect(() => {
     if (target == null || isNaN(target)) return;
 
     if (isMountRef.current) {
       isMountRef.current = false;
+      prevTargetRef.current = target;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       const startTime = performance.now();
       const animate = (now) => {
@@ -30,7 +32,11 @@ export function useCountUp(target, duration = DURATION.dramatic) {
       };
       rafRef.current = requestAnimationFrame(animate);
     } else {
-      // Live update: fade-out → swap → fade-in
+      // Skip if value didn't actually change (prevents stale-closure re-runs)
+      if (target === prevTargetRef.current) return;
+      prevTargetRef.current = target;
+
+      // Live update: subtle fade-out → swap → fade-in
       if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
       if (swapTimerRef.current) { clearTimeout(swapTimerRef.current); }
       setVisible(false);
@@ -38,14 +44,14 @@ export function useCountUp(target, duration = DURATION.dramatic) {
         setDisplay(target);
         setVisible(true);
         swapTimerRef.current = null;
-      }, 120);
+      }, 100);
     }
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
     };
-  }, [target]);
+  }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { value: display, visible };
 }

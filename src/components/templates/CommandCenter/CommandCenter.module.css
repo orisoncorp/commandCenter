@@ -34,11 +34,22 @@
   overflow: hidden;
 }
 
-.bottomInner > *:not(:last-child) {
+/* insight slot — fixed narrow width */
+.bottomInner > *:first-child {
+  width: 260px;
+  flex-shrink: 0;
   border-right: 1px solid var(--color-glass-border);
-  flex: 1;
+  overflow: hidden;
 }
 
+/* data-table — fills remaining space */
+.bottomInner > *:nth-child(2) {
+  flex: 1;
+  border-right: 1px solid var(--color-glass-border);
+  min-width: 0;
+}
+
+/* event feed — fixed width */
 .bottomInner > *:last-child {
   width: 240px;
   flex-shrink: 0;

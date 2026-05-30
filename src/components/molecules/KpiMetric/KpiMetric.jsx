@@ -13,7 +13,7 @@ export default function KpiMetric({ label, value, compare, delta, format = 'curr
       <Label color="muted">{label}</Label>
       <span
         className={styles.value}
-        style={{ transition: 'opacity 200ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.4 }}
+        style={{ transition: 'opacity 180ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.65 }}
       >
         {fmt(animated)}
       </span>

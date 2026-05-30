@@ -3,9 +3,9 @@
   align-items: center;
   gap: 3px;
   font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
+  font-size: var(--body-size);
+  font-weight: 400;
+  letter-spacing: 2px;
   text-transform: uppercase;
   line-height: 1;
 }

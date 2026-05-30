@@ -52,7 +52,7 @@ export default function ChartBar({ label, data = [] }) {
           return (
             <text key={i} x={x} y={H - 4}
               textAnchor="middle"
-              fill="var(--color-text-muted)"
+              fill="var(--color-text-secondary)"
               fontSize="6"
               fontFamily="var(--font-body)"
               letterSpacing="1"

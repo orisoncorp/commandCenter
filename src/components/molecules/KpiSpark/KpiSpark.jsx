@@ -6,6 +6,7 @@ import { useCountUp } from '../../../motion/useCountUp';
 
 function Sparkline({ data }) {
   const pathRef = useRef(null);
+  const mountedRef = useRef(false);
 
   const W = 200, H = 48;
   const min = Math.min(...data);
@@ -20,6 +21,8 @@ function Sparkline({ data }) {
   useEffect(() => {
     const el = pathRef.current;
     if (!el) return;
+    if (mountedRef.current) return; // live updates: just rerender the path, no re-animation
+    mountedRef.current = true;
     const len = el.getTotalLength();
     el.style.strokeDasharray = len;
     el.style.strokeDashoffset = len;
@@ -48,7 +51,7 @@ export default function KpiSpark({ label, value, delta, sparkline = [], format =
       <Label color="muted">{label}</Label>
       <span
         className={styles.value}
-        style={{ transition: 'opacity 200ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.4 }}
+        style={{ transition: 'opacity 180ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.65 }}
       >
         {display}
       </span>

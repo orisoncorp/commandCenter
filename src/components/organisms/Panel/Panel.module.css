@@ -17,6 +17,11 @@
   gap: 0;
   padding: var(--space-3);
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .scroll > * {
