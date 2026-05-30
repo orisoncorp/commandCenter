@@ -26,16 +26,29 @@ const MOUNT_DELAYS = LOCATIONS.map((_, i) => calcStaggerDelay(i, 60));
 const SWEEP_DURATION = 7.0;  // seconds for one full 2π sweep
 const SWEEP_PAUSE    = 3.0;  // seconds pause after sweep completes
 
+// Meridian arc: N points along the great circle at a fixed longitude (XZ=0, sweeping in Y).
+// depthTest=false so it's always visible regardless of globe occlusion.
+const SWEEP_SEGMENTS = 48;
+function buildMeridianGeo() {
+  const pts = [];
+  for (let i = 0; i <= SWEEP_SEGMENTS; i++) {
+    const phi = (i / SWEEP_SEGMENTS) * Math.PI; // 0 → π (north to south pole)
+    // At longitude 0 (Z axis): x=sin(phi)*0, y=cos(phi), z=sin(phi)
+    // We place the meridian along the Z+ axis initially; the group rotates around Y.
+    pts.push(new THREE.Vector3(0, Math.cos(phi) * 1.04, Math.sin(phi) * 1.04));
+  }
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const geo = new THREE.TubeGeometry(curve, SWEEP_SEGMENTS, 0.008, 6, false);
+  return geo;
+}
+
 function RadarSweep({ sweepAngleRef, reducedMotion }) {
   const groupRef = useRef();
   const matRef   = useRef();
   const state    = useRef({ phase: 'sweep', timer: 0 });
 
-  // A thin vertical quad offset to the globe surface (r=1.06).
-  // The group rotates around Y — the quad sweeps like a clock hand across the globe.
-  // Position [0, 0, 1.06]: sits at the front of the globe in local space,
-  // group Y-rotation sweeps it around the full equator.
-  const geo = useMemo(() => new THREE.PlaneGeometry(0.22, 2.20), []);
+  // TubeGeometry along the meridian arc — always visible via depthTest=false
+  const geo = useMemo(() => buildMeridianGeo(), []);
   useEffect(() => () => geo.dispose(), [geo]);
 
   useFrame((_, delta) => {
@@ -60,7 +73,7 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
     sweepAngleRef.current = groupRef.current.rotation.y;
 
     const fade = Math.min(progress * 4, 1) * Math.min((1 - progress) * 4, 1);
-    if (matRef.current) matRef.current.opacity = 0.45 * fade;
+    if (matRef.current) matRef.current.opacity = 0.70 * fade;
 
     if (s.timer >= SWEEP_DURATION) {
       s.phase = 'pause';
@@ -71,15 +84,14 @@ function RadarSweep({ sweepAngleRef, reducedMotion }) {
 
   return (
     <group ref={groupRef} raycast={() => null}>
-      {/* Quad sits at z=+1.06 (globe surface), faces outward along Z */}
-      <mesh geometry={geo} position={[0, 0, 1.06]} raycast={() => null}>
+      <mesh geometry={geo} raycast={() => null}>
         <meshBasicMaterial
           ref={matRef}
           color="#C0282A"
           transparent
           opacity={0}
+          depthTest={false}
           depthWrite={false}
-          side={THREE.DoubleSide}
         />
       </mesh>
     </group>
