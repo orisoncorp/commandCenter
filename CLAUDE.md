@@ -74,3 +74,12 @@ Não bloqueantes para demo/piloto, necessários para operação contínua:
 - Tokens: --color-*, --motion-*, --space-*, --font-*, --dv-*
 - Um componente por pasta com .jsx + .module.css
 - Configs por vertical em src/configs/{vertical-name}.json
+
+## RTK — Compressão de Output (Rust Token Killer)
+
+RTK está ativo **globalmente** (hook `PreToolUse` em `~/.claude/settings.json`): todo comando Bash é reescrito de forma transparente para `rtk <cmd>`, comprimindo a saída (`npm`, `git`, `grep`, build) em ~60-90% antes de entrar no contexto — sessões mais longas, menos auto-compactação.
+
+- **Automático** — não é preciso invocar `rtk` na mão; o hook cuida da reescrita.
+- `rtk gain` mostra a economia acumulada · `rtk proxy <cmd>` executa sem compressão (debug).
+- Ajuste global em `~/.config/rtk/config.toml` (`exclude_commands`, `[tee]` salva output completo em falha).
+- Escopo global — vale para esta e todas as codebases da Orison.
