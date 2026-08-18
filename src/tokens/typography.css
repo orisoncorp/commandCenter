@@ -1,29 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Montserrat:wght@300;400&display=swap');
+/* Fontes carregam via <link> no index.html — com preconnect e fora da cadeia
+   de @import. Um @import aninhado dentro de outro @import é o pior waterfall
+   possível: o browser só descobre a fonte depois de parsear duas folhas. */
 
 :root {
-  --font-display: 'Cormorant Garamond', serif;
-  --font-body: 'Montserrat', sans-serif;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Montserrat', system-ui, -apple-system, sans-serif;
 
-  /* Display scale */
-  --display-hero: 56px;
-  --display-xl: 52px;
-  --display-lg: 36px;
-  --display-md: 28px;
-  --display-sm: 20px;
-  --display-xs: 18px;
+  /* ── Escala de interface ──────────────────────────────────────
+     Em rem, ancorada em html{font-size:100%} — respeita a preferência
+     de tamanho de fonte do usuário. Piso absoluto: 10px.
+     Antes: tudo em px, com html{font-size:11px}, e 5/6/7px em uso. */
+  --micro-size: 0.625rem;    /* 10px — badges, metadados, eixos */
+  --label-size: 0.6875rem;   /* 11px — rótulos de componente */
+  --body-size: 0.8125rem;    /* 13px — corpo, células de tabela */
+  --text-sm: 0.875rem;       /* 14px — preenche o vão que forçava px cru */
 
-  /* Body scale */
-  --body-size: 11px;
-  --body-weight: 300;
-  --body-line-height: 1.9;
+  --micro-weight: 500;
+  --label-weight: 500;
+  --body-weight: 400;
 
-  /* Label */
-  --label-size: 9px;
-  --label-weight: 400;
-  --label-spacing: 5px;
+  --micro-line-height: 1.4;
+  --body-line-height: 1.6;
+  --prose-line-height: 1.75;
 
-  /* Micro */
-  --micro-size: 8px;
-  --micro-weight: 400;
-  --micro-spacing: 4px;
+  /* Tracking em em — escala junto com o tamanho.
+     Antes em px: 5px sobre 9px era 0.56em, o mesmo token sobre 28px
+     seria 0.18em. Um token de tracking em px não é reutilizável. */
+  --tracking-micro: 0.26em;
+  --tracking-label: 0.22em;
+  --tracking-body: 0.01em;
+  --tracking-display: 0.16em;
+  --tracking-value: -0.01em;
+
+  /* ── Escala numérica (sans) ───────────────────────────────────
+     Valores de KPI usam o sans, não a display serifada: traço 300 em
+     serifada sobre quase-preto perde peso óptico, e Cormorant usa
+     algarismos old-style por padrão. */
+  --value-lg: 1.75rem;       /* 28px — KPI de painel */
+  --value-md: 1.25rem;       /* 20px — KPI de header */
+  --value-sm: 1rem;          /* 16px */
+  --value-weight: 500;
+
+  /* ── Escala editorial (Cormorant) ─────────────────────────────
+     Wordmark, títulos de painel e peças editoriais. Razão ~1.25.
+     Antes hero(56) e xl(52) eram 4px indistinguíveis. */
+  --display-xs: 1.125rem;    /* 18px */
+  --display-sm: 1.375rem;    /* 22px */
+  --display-md: 1.75rem;     /* 28px */
+  --display-lg: 2.25rem;     /* 36px */
+  --display-xl: 3rem;        /* 48px */
+  --display-weight: 300;
 }

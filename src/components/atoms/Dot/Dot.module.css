@@ -2,12 +2,12 @@
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
 }
 
 .active {
-  background: var(--color-crimson);
+  background: var(--color-crimson-text);
 }
 
 .inactive {
@@ -15,10 +15,17 @@
 }
 
 .pulsing {
-  animation: pulse 2s var(--motion-easing-state) infinite;
+  animation: pulse var(--motion-pulse) var(--motion-easing-state) infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.5); opacity: 0.6; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.6;
+  }
 }

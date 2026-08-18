@@ -1,25 +1,40 @@
 import { useState, useEffect, useRef } from 'react';
 import { DURATION } from './constants';
+import { usePrefersReducedMotion } from './usePrefersReducedMotion';
 
-// Mount: animates 0 → target (counter, DURATION.dramatic).
-// Live updates: fade-out (80ms) → swap value → fade-in (150ms).
+// Mount: anima 0 → alvo. Live update: fade-out → swap → fade-in.
+//
+// Com reduced motion, o valor salta direto para o alvo. O CSS não alcança
+// este loop — é requestAnimationFrame puro, então a preferência precisa ser
+// lida aqui explicitamente.
 export function useCountUp(target, duration = DURATION.dramatic) {
-  const [display, setDisplay] = useState(0);
+  const reduced = usePrefersReducedMotion();
+  const [display, setDisplay] = useState(() => (Number.isFinite(target) ? target : 0));
   const [visible, setVisible] = useState(true);
   const isMountRef = useRef(true);
   const rafRef = useRef(null);
   const swapTimerRef = useRef(null);
   const prevTargetRef = useRef(null);
 
+  // Com reduced motion o valor acompanha o alvo diretamente. Sincronizar
+  // durante o render (em vez de num efeito) evita um render em cascata e é o
+  // padrão recomendado para estado derivado de props.
+  const [syncedTarget, setSyncedTarget] = useState(target);
+  if (reduced && syncedTarget !== target && Number.isFinite(target)) {
+    setSyncedTarget(target);
+    setDisplay(target);
+    setVisible(true);
+  }
+
   useEffect(() => {
-    if (target == null || isNaN(target)) return;
+    if (!Number.isFinite(target) || reduced) return undefined;
 
     if (isMountRef.current) {
       isMountRef.current = false;
       prevTargetRef.current = target;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       const startTime = performance.now();
-      const animate = (now) => {
+      const animate = now => {
         const progress = Math.min((now - startTime) / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
         setDisplay(target * eased);
@@ -32,26 +47,27 @@ export function useCountUp(target, duration = DURATION.dramatic) {
       };
       rafRef.current = requestAnimationFrame(animate);
     } else {
-      // Skip if value didn't actually change (prevents stale-closure re-runs)
-      if (target === prevTargetRef.current) return;
+      if (target === prevTargetRef.current) return undefined;
       prevTargetRef.current = target;
 
-      // Live update: subtle fade-out → swap → fade-in
-      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-      if (swapTimerRef.current) { clearTimeout(swapTimerRef.current); }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
       setVisible(false);
       swapTimerRef.current = setTimeout(() => {
         setDisplay(target);
         setVisible(true);
         swapTimerRef.current = null;
-      }, 100);
+      }, DURATION.instant);
     }
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
     };
-  }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [target, duration, reduced]);
 
   return { value: display, visible };
 }

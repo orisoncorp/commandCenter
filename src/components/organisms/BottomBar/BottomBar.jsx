@@ -2,8 +2,8 @@ import styles from './BottomBar.module.css';
 
 export default function BottomBar({ children }) {
   return (
-    <div className={styles.bottom}>
+    <footer className={styles.bottom} aria-label="Contratos e eventos">
       {children}
-    </div>
+    </footer>
   );
 }

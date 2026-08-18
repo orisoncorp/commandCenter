@@ -1,0 +1,113 @@
+/* Primitivas compartilhadas.
+
+   Cada bloco aqui existia duplicado no repo: a estrofe de micro-type
+   aparecia 16 vezes, a receita de .card 5 vezes byte-idêntica, a de
+   .value 4 vezes, e a de vidro 3 vezes. Componentes agora fazem
+   `composes: x from '.../primitives.module.css'`. */
+
+/* ── Tipo ───────────────────────────────────────────────────────*/
+.microType {
+  font-family: var(--font-body);
+  font-size: var(--micro-size);
+  font-weight: var(--micro-weight);
+  letter-spacing: var(--tracking-micro);
+  line-height: var(--micro-line-height);
+  text-transform: uppercase;
+}
+
+.labelType {
+  font-family: var(--font-body);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--micro-line-height);
+  text-transform: uppercase;
+}
+
+.bodyType {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  font-weight: var(--body-weight);
+  letter-spacing: var(--tracking-body);
+  line-height: var(--body-line-height);
+}
+
+/* Valores numéricos usam o sans, não a display serifada.
+   Figuras PROPORCIONAIS: tabular-nums em número grande e isolado deixa
+   "121" frouxo. tabular fica reservado a colunas (.tabular). */
+.valueType {
+  font-family: var(--font-body);
+  font-size: var(--value-lg);
+  font-weight: var(--value-weight);
+  letter-spacing: var(--tracking-value);
+  line-height: 1;
+  color: var(--color-text-primary);
+  font-variant-numeric: lining-nums;
+  font-feature-settings: 'lnum';
+}
+
+/* Só onde números empilham verticalmente. */
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'lnum', 'tnum';
+}
+
+/* Camada editorial — Cormorant permanece na identidade. */
+.displayType {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.1;
+}
+
+/* ── Superfícies ────────────────────────────────────────────────*/
+.glass {
+  background: var(--color-glass-surface);
+  backdrop-filter: blur(var(--blur-panel));
+  -webkit-backdrop-filter: blur(var(--blur-panel));
+}
+
+.glassHeader {
+  background: var(--color-glass-header);
+  backdrop-filter: blur(var(--blur-header));
+  -webkit-backdrop-filter: blur(var(--blur-header));
+}
+
+/* Card sem borda própria: separação por linha sutil e espaço. */
+.card {
+  background: var(--color-card-surface);
+  padding: var(--space-4) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-bottom: var(--border-hairline) solid var(--color-glass-border);
+  transition: background var(--motion-duration-fast) var(--motion-easing-state);
+}
+
+.card:last-child {
+  border-bottom: none;
+}
+
+.card:hover {
+  background: var(--color-card-hover);
+}
+
+/* ── Utilitários ────────────────────────────────────────────────*/
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}

@@ -1,30 +1,34 @@
 .root {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-black);
   overflow: hidden;
-  animation: rootFadeIn 600ms var(--motion-easing-enter) both;
+  animation: rootFadeIn var(--motion-duration-slow) var(--motion-easing-enter) both;
 }
 
 @keyframes rootFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .body {
   flex: 1;
   position: relative;
   overflow: hidden;
+  min-height: 0;
 }
 
-@media (max-width: 900px) {
-  .body {
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-  }
+.main {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-hero);
 }
 
 .bottomInner {
@@ -34,37 +38,80 @@
   overflow: hidden;
 }
 
-/* insight slot — fixed narrow width */
-.bottomInner > *:first-child {
-  width: 260px;
+/* Slots nomeados, não posicionais. */
+.slotInsight {
+  width: var(--size-insight-w);
   flex-shrink: 0;
-  border-right: 1px solid var(--color-glass-border);
+  border-right: var(--border-hairline) solid var(--color-glass-border);
   overflow: hidden;
 }
 
-/* data-table — fills remaining space */
-.bottomInner > *:nth-child(2) {
+.slotTable {
   flex: 1;
-  border-right: 1px solid var(--color-glass-border);
   min-width: 0;
+  border-right: var(--border-hairline) solid var(--color-glass-border);
+  overflow: hidden;
 }
 
-/* event feed — fixed width */
-.bottomInner > *:last-child {
-  width: 240px;
+.slotFeed {
+  width: var(--size-feed-w);
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.widgetSlot {
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  padding: var(--space-4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+/* ── Adaptação ──────────────────────────────────────────────────*/
+
+/* Tablet e abaixo: a casca vira uma coluna rolável. O hero deixa de ser
+   camada de fundo e passa a ser um bloco na sequência. */
+@media (max-width: 900px) {
+  .root {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .main {
+    position: relative;
+    inset: auto;
+    height: 45dvh;
+    min-height: 280px;
+    flex-shrink: 0;
+    order: -1;
+  }
+}
+
+/* O rodapé de três colunas precisava de 500px não-encolhíveis. Abaixo disso
+   a tabela colapsava para 0px e desaparecia, e o feed era cortado no meio de
+   uma palavra. Empilhar é a única leitura honesta neste espaço. */
+@media (max-width: 900px) {
+  .bottomInner {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .slotInsight,
+  .slotTable,
+  .slotFeed {
+    width: 100%;
+    border-right: none;
+    border-bottom: var(--border-hairline) solid var(--color-glass-border);
+    overflow: visible;
+  }
+
+  .slotFeed {
+    border-bottom: none;
+  }
+
+  .slotTable {
+    /* Tabela larga rola no próprio eixo em vez de espremer as colunas. */
+    overflow-x: auto;
+  }
 }

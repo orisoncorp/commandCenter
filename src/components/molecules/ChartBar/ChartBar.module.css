@@ -1,22 +1,81 @@
 .wrap {
   background: transparent;
-  padding: var(--space-3) var(--space-2);
+  padding: var(--space-4) var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.plot {
+  position: relative;
+  /* O SVG escala por viewBox, então num painel de largura total os rótulos de
+     eixo saltariam de 9px para ~27px. O gráfico tem um tamanho útil; passar
+     dele não acrescenta leitura. */
+  max-width: 340px;
 }
 
 .chart {
   width: 100%;
   height: auto;
   display: block;
+  overflow: visible;
+}
+
+/* Rótulos de eixo herdam o token, não um fontSize cru de 6px. */
+.axisLabel {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: var(--micro-weight);
+  letter-spacing: 0.06em;
+  fill: var(--color-text-muted);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 @keyframes barIn {
-  from { transform: scaleY(0); }
-  to   { transform: scaleY(1); }
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
 }
 
 .bar {
-  animation: barIn cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: barIn var(--motion-duration-moderate) var(--motion-easing-enter) both;
+  transition: fill var(--motion-duration-fast) var(--motion-easing-state);
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--color-glass-detail);
+  backdrop-filter: blur(var(--blur-detail));
+  -webkit-backdrop-filter: blur(var(--blur-detail));
+  border: var(--border-hairline) solid rgb(var(--color-crimson-rgb) / 0.25);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.tipLabel {
+  composes: microType from '../../../styles/primitives.module.css';
+  color: var(--color-text-muted);
+}
+
+.tipValue {
+  composes: bodyType from '../../../styles/primitives.module.css';
+  composes: tabular from '../../../styles/primitives.module.css';
+  color: var(--color-text-primary);
+}
+
+.empty {
+  composes: microType from '../../../styles/primitives.module.css';
+  color: var(--color-text-muted);
+  padding: var(--space-4) 0;
 }

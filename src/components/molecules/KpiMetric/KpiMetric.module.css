@@ -1,53 +1,37 @@
 .card {
-  background: transparent;
-  padding: var(--space-3) var(--space-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--color-glass-border);
-  transition: background 200ms var(--motion-easing-state);
-}
-
-.card:last-child {
-  border-bottom: none;
-}
-
-.card:hover {
-  background: rgba(255, 255, 255, 0.02);
+  composes: card from '../../../styles/primitives.module.css';
 }
 
 .value {
-  font-family: var(--font-display);
-  font-size: var(--display-md);
-  font-weight: 300;
-  color: var(--color-text-primary);
-  line-height: 1;
-  letter-spacing: -0.5px;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "lnum", "tnum";
-  display: inline-block;
-  min-width: 140px;
+  composes: valueType from '../../../styles/primitives.module.css';
+  composes: tabular from '../../../styles/primitives.module.css';
+  width: 100%;
   text-align: right;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-state);
+}
+
+.updating {
+  opacity: 0.65;
 }
 
 .compare {
   display: flex;
-  align-items: center;
-  gap: var(--space-1);
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .vs {
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  color: var(--color-text-secondary);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
+  composes: microType from '../../../styles/primitives.module.css';
+  color: var(--color-text-muted);
 }
 
+/* Comparar este número com o valor principal é o propósito do componente —
+   então ele usa a mesma família e as mesmas figuras, só menor. Antes vinha
+   em outro tamanho, outro peso e sem tabular-nums. */
 .compareVal {
-  font-family: var(--font-body);
-  font-size: var(--body-size);
-  font-weight: var(--body-weight);
+  composes: valueType from '../../../styles/primitives.module.css';
+  composes: tabular from '../../../styles/primitives.module.css';
+  font-size: var(--value-sm);
   color: var(--color-text-secondary);
 }

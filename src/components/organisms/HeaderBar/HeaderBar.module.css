@@ -1,17 +1,15 @@
 .header {
-  height: 48px;
-  background: var(--color-glass-header);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  composes: glassHeader from '../../../styles/primitives.module.css';
+  height: var(--size-header-h);
   position: relative;
-  z-index: 20;
-  overflow: visible;
+  z-index: var(--z-header);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-4);
+  gap: var(--space-4);
+  padding: 0 var(--space-5);
   flex-shrink: 0;
-  animation: headerSlideIn 500ms var(--motion-easing-emphasis) both;
+  animation: headerSlideIn var(--motion-duration-moderate) var(--motion-easing-enter) both;
 }
 
 @keyframes headerSlideIn {
@@ -32,7 +30,7 @@
   left: 0;
   right: 0;
   height: 32px;
-  background: linear-gradient(to bottom, rgba(17, 17, 19, 0.6), transparent);
+  background: linear-gradient(to bottom, var(--color-glass-header), transparent);
   pointer-events: none;
   z-index: 1;
 }
@@ -41,125 +39,170 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
 }
 
 .logo {
-  font-size: 14px;
-  color: var(--color-crimson);
+  font-size: var(--text-sm);
+  color: var(--color-crimson-text);
   line-height: 1;
+  flex-shrink: 0;
+}
+
+.brandLockup {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  font-weight: inherit;
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 300;
+  composes: displayType from '../../../styles/primitives.module.css';
+  font-size: var(--display-xs);
   color: var(--color-offwhite);
-  letter-spacing: 3px;
+  white-space: nowrap;
 }
 
 .sep {
-  color: var(--color-border-strong);
+  color: var(--color-gray);
   font-size: var(--micro-size);
+  flex-shrink: 0;
 }
 
 .title {
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
+  composes: microType from '../../../styles/primitives.module.css';
+  composes: truncate from '../../../styles/primitives.module.css';
   color: var(--color-crimson-text);
 }
 
 .center {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-6);
+  min-width: 0;
 }
 
 .kpi {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 .kpiLabel {
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
+  composes: microType from '../../../styles/primitives.module.css';
+  composes: truncate from '../../../styles/primitives.module.css';
   color: var(--color-text-muted);
-  line-height: 1;
 }
 
 .kpiValue {
-  font-family: var(--font-display);
-  font-size: var(--display-xs);
-  font-weight: 300;
-  color: var(--color-text-primary);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "lnum", "tnum";
-  display: inline-block;
-  min-width: 100px;
-  text-align: right;
+  composes: valueType from '../../../styles/primitives.module.css';
+  composes: tabular from '../../../styles/primitives.module.css';
+  font-size: var(--value-md);
+  /* min-width fixo de 100px impedia o header de comprimir e era parte de
+     por que ele estourava abaixo de ~1045px. */
+  white-space: nowrap;
 }
 
 .right {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.statusLabel {
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
-  color: var(--color-crimson-text);
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 .liveBtn {
+  composes: microType from '../../../styles/primitives.module.css';
   display: flex;
   align-items: center;
   gap: var(--space-1);
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 3px 10px;
+  border: var(--border-hairline) solid rgb(var(--color-white-rgb) / 0.08);
+  /* Medido em 19px de altura; o mínimo de alvo é 24px. */
+  padding: var(--space-2) var(--space-3);
+  min-height: var(--size-touch-min);
   cursor: pointer;
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
-  transition: border-color 150ms var(--motion-easing-state), color 150ms var(--motion-easing-state);
-  line-height: 1;
+  white-space: nowrap;
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-easing-state),
+    color var(--motion-duration-fast) var(--motion-easing-state);
 }
 
 .liveBtnActive {
-  border-color: rgba(139, 26, 26, 0.4);
+  border-color: rgb(var(--color-crimson-rgb) / 0.4);
   color: var(--color-crimson-text);
 }
 
 .liveBtnActive:hover {
-  border-color: rgba(139, 26, 26, 0.7);
+  border-color: rgb(var(--color-crimson-rgb) / 0.7);
 }
 
 .liveBtnPaused {
-  border-color: rgba(255, 255, 255, 0.06);
+  border-color: rgb(var(--color-white-rgb) / 0.06);
   color: var(--color-text-muted);
 }
 
 .liveBtnPaused:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgb(var(--color-white-rgb) / 0.12);
   color: var(--color-text-secondary);
+}
+
+/* ── Adaptação ──────────────────────────────────────────────────
+   O header precisava de ~875px e não tinha nenhum breakpoint até 900px,
+   então entre 768 e 900 ele transbordava a própria altura e vazava sobre
+   o corpo. A redução é por prioridade, não por encolhimento: primeiro
+   saem os KPIs (repetidos nos painéis), depois o relógio. */
+@media (max-width: 1100px) {
+  .center {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .header {
+    padding: 0 var(--space-4);
+    gap: var(--space-2);
+  }
+  .right {
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 700px) {
+  .right time {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  /* O cluster da direita precisa de ~330px de conteúdo não-encolhível contra
+     ~257px disponíveis em 375px. A redução é por prioridade: primeiro o
+     tracking generoso dos rótulos, depois a palavra "LIVE" — o ponto
+     pulsante já carrega o estado, e o botão mantém aria-label. */
+  .liveBtn {
+    padding: var(--space-2);
+    gap: 0;
+    /* Vira botão de ícone: o alvo precisa ser quadrado, não só alto. */
+    min-width: var(--size-touch-min);
+    justify-content: center;
+  }
+
+  .liveBtn span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .sep,
+  .title {
+    display: none;
+  }
 }

@@ -2,44 +2,65 @@
   display: flex;
   gap: 1px;
   align-items: center;
-  opacity: 0.6;
-  transition: opacity 200ms var(--motion-easing-state);
+  /* Antes o grupo ficava em 0.6 e só subia no :hover — tabular para dentro
+     dele deixava o foco duplamente invisível. */
+  opacity: 0.75;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-state);
 }
 
-.toggle:hover {
+.toggle:hover,
+.toggle:focus-within {
   opacity: 1;
 }
 
 .btn {
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
+  composes: microType from '../../../styles/primitives.module.css';
   color: var(--color-text-muted);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 4px 10px;
+  border: var(--border-hairline) solid rgb(var(--color-white-rgb) / 0.06);
+  /* Alvo de toque: era ~16px de altura, abaixo do mínimo de 24px. */
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
-              background 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 0;
-  line-height: 1;
+  border-radius: var(--radius-none);
+  white-space: nowrap;
+  transition:
+    color var(--motion-duration-fast) var(--motion-easing-state),
+    border-color var(--motion-duration-fast) var(--motion-easing-state),
+    background var(--motion-duration-fast) var(--motion-easing-state);
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   color: var(--color-text-secondary);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgb(var(--color-white-rgb) / 0.12);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .active {
   color: var(--color-crimson-text);
-  border-color: rgba(139, 26, 26, 0.4);
-  background: rgba(139, 26, 26, 0.08);
+  border-color: rgb(var(--color-crimson-rgb) / 0.4);
+  background: rgb(var(--color-crimson-rgb) / 0.08);
 }
 
-.active:hover {
+.active:hover:not(:disabled) {
   color: var(--color-crimson-text);
-  border-color: rgba(139, 26, 26, 0.6);
+  border-color: rgb(var(--color-crimson-rgb) / 0.6);
+}
+
+@media (max-width: 900px) {
+  .btn {
+    padding: var(--space-2);
+  }
+}
+
+@media (max-width: 600px) {
+  /* Tracking de 0.26em custa ~2.6px por caractere; em quatro rótulos isso é
+     mais de 40px só de ar. Aperta em vez de esconder um modo. */
+  .btn {
+    letter-spacing: 0.06em;
+    padding: var(--space-2) var(--space-1);
+  }
 }

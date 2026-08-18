@@ -6,17 +6,12 @@ import { formatValue } from '../../../data/format';
 
 export default function KpiMetric({ label, value, compare, delta, format = 'currency' }) {
   const { value: animated, visible } = useCountUp(typeof value === 'number' ? value : 0);
-  const fmt = (v) => formatValue(v, format);
+  const fmt = v => formatValue(v, format);
 
   return (
     <div className={styles.card}>
-      <Label color="muted">{label}</Label>
-      <span
-        className={styles.value}
-        style={{ transition: 'opacity 180ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.65 }}
-      >
-        {fmt(animated)}
-      </span>
+      <Label>{label}</Label>
+      <span className={`${styles.value} ${visible ? '' : styles.updating}`}>{fmt(animated)}</span>
       {compare != null && (
         <div className={styles.compare}>
           <span className={styles.vs}>vs</span>

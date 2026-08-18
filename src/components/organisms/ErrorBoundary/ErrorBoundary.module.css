@@ -1,0 +1,38 @@
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  text-align: center;
+  background: var(--color-black);
+}
+
+.title {
+  composes: labelType from '../../../styles/primitives.module.css';
+  color: var(--color-text-secondary);
+}
+
+.detail {
+  composes: bodyType from '../../../styles/primitives.module.css';
+  color: var(--color-text-muted);
+  max-width: 42ch;
+}
+
+.retry {
+  composes: microType from '../../../styles/primitives.module.css';
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: transparent;
+  color: var(--color-crimson-text);
+  border: var(--border-hairline) solid rgb(var(--color-crimson-rgb) / 0.4);
+  cursor: pointer;
+  transition: border-color var(--motion-duration-fast) var(--motion-easing-state);
+}
+
+.retry:hover {
+  border-color: rgb(var(--color-crimson-rgb) / 0.7);
+}

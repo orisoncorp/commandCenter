@@ -1,76 +1,104 @@
 # Orison Command Center
 
-**Status: v1.0 — validado, pronto para deploy (demo / piloto / uso interno)**
+**Status: v1.1 — refatoração visual completa aplicada sobre a v1.0.**
 
 ## Stack
-- Vite + React 18
-- CSS Modules com custom properties (tokens herdados do orisonDesign.md)
+- Vite + **React 19** (a v1.0 documentava React 18; o `package.json` sempre fixou 19)
+- CSS Modules com custom properties (tokens herdados do `orisonDesign.md`)
 - Three.js via @react-three/fiber + @react-three/drei
 - Zero Tailwind — tokens próprios
 
 ## Arquitetura
 - Design Atômico: atoms → molecules → organisms → templates
-- Configurável via JSON (src/configs/)
-- Data layer via React Context (DataProvider) + adapters intercambiáveis
-- Motion constants em src/motion/constants.js
+- Configurável via JSON (`src/configs/`), **incluindo identidade visual** (bloco `theme`)
+- Data layer via React Context (3 contextos) + adapters resolvidos por config
+- Motion: tokens em CSS espelhados em `src/motion/constants.js`, com guarda de paridade
 
 ## Estrutura
-- src/tokens/ — CSS custom properties
-- src/components/atoms/ — Badge, Label, Value, Delta, Dot, Timestamp
-- src/components/molecules/ — KpiSimple, KpiSpark, KpiRing, KpiMetric, ChartBar, DataTable, EventFeed, InsightCard
-- src/components/organisms/ — Panel, HeaderBar, BottomBar, HeroContainer, HeroToggle
-- src/components/templates/ — CommandCenter (layout raiz)
-- src/heroes/ — Objetos 3D
-- src/data/ — Adapters, DataProvider, transforms
-- src/motion/ — Easing, durações, stagger utils, useCountUp
-- src/configs/ — JSON configs por deploy
+- `src/tokens/` — colors, typography, spacing, layout, motion, dataviz
+- `src/styles/primitives.module.css` — receitas compartilhadas (`composes:`)
+- `src/theme/applyTheme.js` — aplica o bloco `theme` do config no `:root`
+- `src/components/atoms|molecules|organisms|templates/`
+- `src/heroes/` — objetos 3D + `palette.js` (fonte única de cor da camada 3D)
+- `src/data/` — `DataProvider`, `contexts.js`, `format.js`, `adapters/`
+- `src/motion/` — constants, `useCountUp`, `usePrefersReducedMotion`
 
-## Heroes (production-ready)
+## Contratos que não devem ser quebrados
 
-Quatro heroes validados em produção:
+**Tipografia**
+- Piso absoluto de **10px**. Nada abaixo, nem glifo decorativo.
+- Escala em `rem` com `html { font-size: 100% }`. **Nunca** aplicar `font-size`
+  no `html` junto de uma escala em rem — o rem compõe sobre si mesmo e a escala
+  inteira encolhe.
+- Tracking em `em`, nunca em `px`.
+- Valores numéricos usam o **sans** (Montserrat 500). Cormorant fica no
+  wordmark, títulos de painel e camada editorial.
 
-- **Globe** (`src/heroes/Globe/`) — esfera 3D georreferenciada com pins de contrato, radar sweep crimson, connection lines entre nós ativos. Para verticais com dimensão geográfica: filiais, logística, cobertura regional.
-- **NetworkGraph** (`src/heroes/NetworkGraph/`) — hub radial com nó central + satélites, partículas bidirecionais animadas nas edges. Para verticais de conexão: SaaS B2B, integrações, ecossistema de parceiros.
-- **ParticleStream** (`src/heroes/ParticleStream/`) — Rio de Fitas: 6 ribbons com 480 partículas em fluxo contínuo, intensity wave que pulsa com volume. Para verticais de throughput: e-commerce, meios de pagamento, pipelines de dados.
-- **DataCube** (`src/heroes/DataCube/`) — 2 cubos wireframe concêntricos com rotações independentes e efeito parallax no hover, partícula cruzando camadas. Para verticais de análise multidimensional: BI, controladoria, performance estratégica.
+**Cor**
+- `--color-crimson` é acento **estrutural**, nunca tinta de dado (2.1:1 sobre
+  quase-preto). Marcas que codificam valor usam `--color-data-primary`
+  (= `--dv-seq-4`, 4.6:1).
+- Conteúdo não-textual exige 3:1; texto exige 4.5:1.
+- A paleta de `src/tokens/dataviz.css` é validada por
+  `validate_palette.js` (skill `dataviz`). Alterou? Revalide.
+- A **ordem** dos slots categóricos é o mecanismo de segurança CVD.
 
-Todos os heroes são interativos: hover em entidades pausa rotação e abre o DetailPanel.
+**3D**
+- `<Canvas>` sempre com `flat`. Sem isso o R3F aplica ACES tone mapping e a cor
+  autorada em JS não bate com o mesmo token no CSS.
+- Toda cor da camada 3D vem de `src/heroes/palette.js`.
+- Animação multiplica por `delta`. Nunca cravar `0.016` como frame time.
+- Geometria decorativa leva `raycast={() => null}`.
+- `opacity` é uniform simples — **não** setar `material.needsUpdate` por frame.
 
-## Layout Visual (v1.0)
+**Motion e acessibilidade**
+- `prefers-reduced-motion` tem alternativa intencional, não kill global:
+  coreografia e loops somem, transições de estado sobrevivem comprimidas.
+- A camada 3D lê a preferência via `usePrefersReducedMotion()`.
+- Todo controle tem `:focus-visible` visível e alvo de toque ≥ 24px.
+- Um `<h1>`, um `<main>`, `<aside>` nomeados, `lang="pt-BR"`.
 
-Integração visual completa validada:
+**Resiliência**
+- Heroes lazy ficam sob `ErrorBoundary`. Uma falha de chunk não pode apagar o app.
+- Slots do rodapé têm classes explícitas — nunca seletores posicionais contra
+  conteúdo condicional.
+- Formatação de valor e data centralizada em `src/data/format.js`.
+  Datas ISO usam `parseLocalDate` (`new Date('2026-06-15')` é meia-noite UTC e
+  renderiza o dia anterior em todo o Brasil).
 
-- **Material unificado:** header, painéis laterais e bottom bar compartilham o mesmo sistema de vidro escurecido — fundo translúcido (`glass-surface` / `glass-header`), `backdrop-filter: blur(10-12px)`, sem bordas rígidas. Fades de gradiente nos limites entre painel e hero (64px).
-- **Cards sem bordas:** KPI cards não têm `border` individual — separados por linha sutil `rgba(255,255,255,0.04)` e espaçamento generoso. Hover com `rgba(255,255,255,0.02)`.
-- **Background atmosférico:** gradiente radial multicamada centrado no hero (núcleo crimson tênue → midnight → black), campo de 20 pontos estáticos ("star field", opacity 0.015–0.025), vignette em 4 cantos via `::after`.
-- **DetailPanel glass-morphism:** fundo `glass-detail` (opacity 0.92) + `blur(16px)`, borda crimson tênue (`rgba 0.15`), box-shadow multicamada. Sem aspecto de modal.
-- **Loading coordenado:** root fade-in 600ms → header slide-down 500ms → items de painel stagger 80–330ms → bottom slide-up 500ms com delay 100ms.
+## Verificação
 
-## Protocolo de Migração
+```bash
+npm run lint     # deve ficar em 0
+npm run build
+node ~/.claude/skills/impeccable/scripts/detect.mjs --json src index.html
+# paleta (skill dataviz):
+node <dataviz>/scripts/validate_palette.js "<categórica>" --mode dark --surface "#0d0d0f"
+node <dataviz>/scripts/validate_palette.js "<rampa>" --ordinal --mode dark --surface "#0d0d0f"
+```
 
-`commandCenterMigration.md` — runbook executável para migrar o Command Center para qualquer vertical de cliente.
+Achado aceito deliberadamente: o detector sinaliza **Montserrat** como fonte
+saturada. É a voz técnica fixada da marca — registrado, não omitido.
 
-Contém: inventário de peças, árvores de decisão, input schema, runbook passo a passo (8 etapas), quality gates, anti-patterns e exemplo completo (E-commerce de Médio Porte).
+## Heroes
 
-Este documento é a fonte primária para agentes Elpis de migração.
+Globe · NetworkGraph · ParticleStream · DataCube. Todos interativos: hover
+**e clique** (o clique é o que torna o DetailPanel alcançável em touch).
 
-## Roadmap (produção real)
+## Roadmap
 
-Não bloqueantes para demo/piloto, necessários para operação contínua:
-
-- **Adapters reais:** rest.js, websocket.js, notion.js (atualmente só mock.js)
-- **Responsividade ampla:** breakpoints abaixo de 900px para tablet/mobile
-- **Error states:** adapter failure, data stale, connection lost
-- **Performance em hardware fraco:** profiling Three.js em GPUs integradas; fallback estático se FPS < 30
+- Adapters reais: `rest.js`, `websocket.js`, `notion.js` — o registro em
+  `src/data/adapters/index.js` já existe e é resolvido por config.
+- i18n completo / RTL.
+- Profiling em GPU integrada; fallback estático abaixo de 30fps.
 
 ## Documentos normativos
-- `orisonDesign.md` — cores, tipografia, espaçamento, tokens glass, padrão de cards sem bordas
-- `orisonMotion.md` — easing, durações, animações dos heroes, live-update fade-swap, loading coordenado
+- `orisonDesign.md` — v1.1: escala tipográfica, paleta de dados validada, motion
+- `orisonMotion.md` — animações dos heroes, loading, live-update
 - `commandCenterMigration.md` — protocolo de migração por vertical
 
 ## Convenções
-- Componentes: PascalCase (Badge.jsx)
-- CSS Modules: camelCase no JS, kebab-case no CSS
-- Tokens: --color-*, --motion-*, --space-*, --font-*, --dv-*
-- Um componente por pasta com .jsx + .module.css
-- Configs por vertical em src/configs/{vertical-name}.json
+- Componentes PascalCase; CSS Modules camelCase no JS
+- Um componente por pasta com `.jsx` + `.module.css`
+- Receitas repetidas vão para `styles/primitives.module.css` via `composes:`
+- Configs por vertical em `src/configs/{vertical-name}.json`

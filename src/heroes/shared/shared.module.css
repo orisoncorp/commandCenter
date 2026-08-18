@@ -24,17 +24,16 @@
   background: var(--color-glass-detail);
   border: 1px solid rgba(139, 26, 26, 0.15);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.03),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  padding: var(--space-4) var(--space-4) var(--space-3);
+    var(--shadow-sm),
+    inset 0 1px 0 rgb(var(--color-white-rgb) / 0.04);
+  padding: var(--space-5) var(--space-5) var(--space-4);
   width: 280px;
   max-width: calc(100vw - 32px);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
   pointer-events: none;
   will-change: transform, opacity;
 }

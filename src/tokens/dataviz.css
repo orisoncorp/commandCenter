@@ -1,26 +1,59 @@
+/* Paleta de dados — validada com scripts/validate_palette.js (skill dataviz)
+   contra a superfície #0d0d0f em modo dark.
+
+   As seis famílias de matiz da Orison são preservadas (27° 53° 195° 250°
+   129° 328°); apenas luminosidade e croma mudam, para entrar na banda
+   válida. A paleta anterior reprovava: teal↔steel davam ΔE 7.2 em visão
+   normal (piso 15) e 4.9 em deuteranopia — duas das seis séries eram
+   indistinguíveis.
+
+   Reservada a MARCAS FINAS: linhas 2px, pontos ≥8px, barras finas. A
+   sobriedade vem da superfície quase-preta e da parcimônia de cor, não de
+   dessaturar o dado até sumir. */
+
 :root {
-  /* Sequencial Crimson */
-  --dv-crim-1: #1A0505;
-  --dv-crim-2: #2D0A0A;
-  --dv-crim-3: #4A1010;
-  --dv-crim-4: #6B1515;
-  --dv-crim-5: #8B1A1A;
-  --dv-crim-6: #A52020;
-  --dv-crim-7: #C03030;
-  --dv-crim-8: #D94040;
+  /* ── Categórica — ordem fixa, nunca ciclada ───────────────────
+     A ordem É o mecanismo de segurança CVD. Não reordenar.
+     [PASS] banda de luminosidade · croma · contraste ≥3:1
+     [PASS] CVD ΔE 16.5 · visão normal ΔE 28.9 */
+  --dv-cat-1: #c50006;  /* crimson  27° — série primária, sempre */
+  --dv-cat-2: #00999f;  /* teal    195° */
+  --dv-cat-3: #f35c00;  /* amber    53° */
+  --dv-cat-4: #a820a8;  /* plum    328° */
+  --dv-cat-5: #327000;  /* olive   129° */
+  --dv-cat-6: #0058d2;  /* steel   250° */
 
-  /* Categórica */
-  --dv-cat-1: #8B1A1A;
-  --dv-cat-2: #8B4A1A;
-  --dv-cat-3: #1A6B6B;
-  --dv-cat-4: #4A6A8B;
-  --dv-cat-5: #4A6B1A;
-  --dv-cat-6: #6B1A6B;
+  /* ── Sequencial crimson — 6 passos ────────────────────────────
+     Seis, não oito: a própria skill limita classes com significado a
+     ~7, e oito passos sobre quase-preto só cabem se o croma cair a
+     ponto de deixar de ser crimson. Todos ≥2:1 contra a superfície
+     (antes, os três primeiros ficavam em 1.01–1.27:1 — invisíveis). */
+  --dv-seq-1: #910009;
+  --dv-seq-2: #a7211f;
+  --dv-seq-3: #bd3833;
+  --dv-seq-4: #d34e45;
+  --dv-seq-5: #ea6258;
+  --dv-seq-6: #ff776b;
 
-  /* Divergente */
-  --dv-div-neg-hi: #8B1A1A;
-  --dv-div-neg: #6B1515;
-  --dv-div-neutral: #3A3A3C;
-  --dv-div-pos: #1A5C2E;
-  --dv-div-pos-hi: #27834A;
+  /* ── Sequencial neutro — 6 passos ─────────────────────────────
+     Intensidade sem conotação semântica. */
+  --dv-neu-1: #524442;
+  --dv-neu-2: #635553;
+  --dv-neu-3: #756664;
+  --dv-neu-4: #887876;
+  --dv-neu-5: #9b8a88;
+  --dv-neu-6: #ae9d9b;
+
+  /* ── Divergente — 5 passos ────────────────────────────────────
+     Sobre fundo escuro a lógica inverte: o centro é o mais apagado
+     (lê como "nada") e a intensidade cresce para as duas pontas.
+     Antes a escala não era monotônica — neg-hi era mais clara que neg. */
+  --dv-div-neg-hi: #ea3d38;
+  --dv-div-neg: #a8564e;
+  --dv-div-neutral: #605d5c;
+  --dv-div-pos: #3b834e;
+  --dv-div-pos-hi: #00a635;
+
+  /* Série de contexto — o "resto" no padrão de ênfase. */
+  --dv-muted: #5a5250;
 }

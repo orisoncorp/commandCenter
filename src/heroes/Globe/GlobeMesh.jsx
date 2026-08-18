@@ -1,59 +1,60 @@
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { HERO_COLORS } from '../palette';
 
-export default function GlobeMesh({ radius = 1, autoRotate = true, rotating }) {
-  const groupRef = useRef();
+// Toda a geometria aqui é decorativa. Sem opt-out, o R3F testava
+// 4096 + 1024 + 8192 + 1280 ≈ 14.600 triângulos por pointermove.
+const NO_RAYCAST = () => null;
 
-  useFrame(() => {
-    if (!groupRef.current) return;
-    if (autoRotate && rotating) {
-      groupRef.current.rotation.y += 0.002;
-    }
-  });
-
+export default function GlobeMesh({ radius = 1 }) {
   return (
-    <group ref={groupRef}>
-      {/* Dense wireframe — 64 segments for richer lat/lng grid */}
-      <mesh>
+    <group>
+      {/* Wireframe denso — 64 segmentos para uma grade lat/lng mais rica */}
+      <mesh raycast={NO_RAYCAST}>
         <sphereGeometry args={[radius, 64, 32]} />
         <meshBasicMaterial
-          color="#e8e6e1"
+          color={HERO_COLORS.offwhite}
           wireframe
           transparent
           opacity={0.07}
           depthWrite={false}
+          toneMapped={false}
         />
       </mesh>
-      {/* Inner dark fill to occlude back-face wireframe */}
-      <mesh>
+
+      {/* Preenchimento interno que oculta o wireframe da face traseira */}
+      <mesh raycast={NO_RAYCAST}>
         <sphereGeometry args={[radius * 0.995, 32, 16]} />
         <meshBasicMaterial
-          color="#0a0a0a"
+          color={HERO_COLORS.background}
           transparent
           opacity={0.6}
           side={THREE.BackSide}
+          toneMapped={false}
         />
       </mesh>
-      {/* Atmospheric halo — BackSide glow */}
-      <mesh>
-        <sphereGeometry args={[radius * 1.08, 64, 64]} />
+
+      {/* Halo atmosférico */}
+      <mesh raycast={NO_RAYCAST}>
+        <sphereGeometry args={[radius * 1.08, 48, 32]} />
         <meshBasicMaterial
-          color="#8B1A1A"
+          color={HERO_COLORS.crimson}
           transparent
           opacity={0.04}
           side={THREE.BackSide}
           depthWrite={false}
+          toneMapped={false}
         />
       </mesh>
-      {/* Equator glow ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
+
+      {/* Anel do equador */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} raycast={NO_RAYCAST}>
         <torusGeometry args={[radius, radius * 0.012, 8, 80]} />
         <meshBasicMaterial
-          color="#8B1A1A"
+          color={HERO_COLORS.crimson}
           transparent
           opacity={0.04}
           depthWrite={false}
+          toneMapped={false}
         />
       </mesh>
     </group>

@@ -4,16 +4,18 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import InteractivePoint from '../shared/InteractivePoint';
 import styles from './DataCube.module.css';
-import { useStream } from '../../data/DataProvider';
+import { useStream } from '../../data/contexts';
 import { calcStaggerDelay } from '../../motion/constants';
+import { usePrefersReducedMotion } from '../../motion/usePrefersReducedMotion';
+import { CANVAS_GL, CANVAS_DPR, applyClearColor, HERO_COLORS } from '../palette';
 
 // ─── layer definitions ────────────────────────────────────────────────────────
 // Three concentric wireframe cubes. Outer = macro view, core = analytical depth.
 
 // Scale reduced ~30%: outer was 1.60 → 1.12, core was 1.00 → 0.70
 const LAYERS = [
-  { size: 1.12, opacity: 0.28, color: '#e8e6e1', speed: 0.0016, speedX: 0.0005 }, // outer (was mid)
-  { size: 0.70, opacity: 0.55, color: '#8B1A1A', speed: 0.0036, speedX: 0.0011 }, // core crimson, faster
+  { size: 1.12, opacity: 0.28, color: HERO_COLORS.offwhite, speed: 0.0016, speedX: 0.0005 }, // outer (was mid)
+  { size: 0.70, opacity: 0.55, color: HERO_COLORS.crimson, speed: 0.0036, speedX: 0.0011 }, // core crimson, faster
 ];
 
 // ─── anchor configs — distributed across layers ───────────────────────────────
@@ -124,7 +126,7 @@ function CrossLayerParticle({ reducedMotion }) {
   return (
     <mesh ref={meshRef} visible={false} raycast={() => null}>
       <sphereGeometry args={[0.025, 6, 6]} />
-      <meshBasicMaterial color="#F06070" transparent opacity={0} depthWrite={false} />
+      <meshBasicMaterial color={HERO_COLORS.crimsonBright} transparent opacity={0} depthWrite={false} />
     </mesh>
   );
 }
@@ -155,7 +157,7 @@ function CrossLayerLines() {
 
   return (
     <lineSegments geometry={geo} raycast={() => null}>
-      <lineBasicMaterial color="#e8e6e1" transparent opacity={0.07} depthWrite={false} />
+      <lineBasicMaterial color={HERO_COLORS.offwhite} transparent opacity={0.07} depthWrite={false} />
     </lineSegments>
   );
 }
@@ -177,7 +179,7 @@ function CoreGlow({ reducedMotion }) {
   return (
     <mesh raycast={() => null}>
       <sphereGeometry args={[0.20, 20, 20]} />
-      <meshBasicMaterial ref={matRef} color="#8B1A1A" transparent opacity={baseOp} side={THREE.BackSide} depthWrite={false} />
+      <meshBasicMaterial ref={matRef} color={HERO_COLORS.crimson} transparent opacity={baseOp} side={THREE.BackSide} depthWrite={false} />
     </mesh>
   );
 }
@@ -186,10 +188,8 @@ function CoreGlow({ reducedMotion }) {
 
 function NestedCubeScene({ anchors, hoveredEmpresa, onHover, reducedMotion, rotating }) {
   const groupRef  = useRef();
-  const layerRefs = useRef(LAYERS.map(() => ({ current: null })));
 
   // Base rotation state (written in useFrame — no state update)
-  const rotState = useRef({ y: 0, x: 0 });
 
   // Per-anchor world positions — recomputed when layers rotate (needs ref to groups)
   // Anchor positions are computed in world space by the layer group's rotation.
@@ -197,22 +197,24 @@ function NestedCubeScene({ anchors, hoveredEmpresa, onHover, reducedMotion, rota
   const layerGroupRefs = useRef([null, null]);
 
   // Scratch vector for anchor position calc
-  const _anchorScratch = useRef(new THREE.Vector3());
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
 
     if (!reducedMotion && rotating) {
       // Global slow rotation of the whole structure
-      groupRef.current.rotation.y += 0.0012;
-      groupRef.current.rotation.x += 0.0003;
+      // × delta: incremento por frame roda 2,4× mais rápido em 144Hz.
+      const dt = Math.min(delta, 0.1);
+      groupRef.current.rotation.y += 0.072 * dt;
+      groupRef.current.rotation.x += 0.018 * dt;
 
       // Differential per-layer rotation
       for (let li = 0; li < layerGroupRefs.current.length; li++) {
         const gr = layerGroupRefs.current[li];
         if (!gr) continue;
-        gr.rotation.y += LAYERS[li].speed;
-        gr.rotation.x += LAYERS[li].speedX;
+        const dtl = Math.min(delta, 0.1);
+        gr.rotation.y += LAYERS[li].speed * 60 * dtl;
+        gr.rotation.x += LAYERS[li].speedX * 60 * dtl;
       }
     }
   });
@@ -267,7 +269,9 @@ export default function DataCube({ onHoverContract, hoveredContract }) {
   const { table } = useStream();
   const [rotating, setRotating] = useState(true);
   const rotateResumeRef = useRef(null);
-  const reducedMotion = false; // live monitoring display — animations are core
+  // A instrumentação já existia e estava ligada; só o interruptor
+  // estava cravado em false.
+  const reducedMotion = usePrefersReducedMotion();
 
   const anchors = useMemo(() => ANCHOR_CONFIGS.map(cfg => ({
     ...cfg,
@@ -303,12 +307,16 @@ export default function DataCube({ onHoverContract, hoveredContract }) {
     <Canvas
       className={styles.canvas}
       camera={{ position: [0, 0, 2.6], fov: 38, near: 0.1, far: 100 }}
-      gl={{ antialias: true, alpha: false }}
-      onCreated={({ gl }) => gl.setClearColor('#0a0a0a', 1)}
+      gl={CANVAS_GL}
+      dpr={CANVAS_DPR}
+      /* `flat` desliga o ACES tone mapping default do R3F — sem ele a
+         cor autorada em JS não bate com o mesmo token no CSS. */
+      flat
+      onCreated={({ gl }) => applyClearColor(gl)}
     >
-      <ambientLight intensity={0.03} />
-      <pointLight position={[3, 3, 3]}   intensity={0.35} color="#ffffff" />
-      <pointLight position={[-3, -2, -2]} intensity={0.10} color="#8B1A1A" />
+      {/* Luzes removidas: todo material aqui é não-iluminado
+          (MeshBasic/LineBasic/Points), então elas custavam travessia de
+          grafo por frame para contribuir zero pixel. */}
 
       <NestedCubeScene
         anchors={anchors}

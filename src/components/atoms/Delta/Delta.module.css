@@ -1,19 +1,24 @@
 .delta {
+  composes: microType from '../../../styles/primitives.module.css';
+  composes: tabular from '../../../styles/primitives.module.css';
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-family: var(--font-body);
-  font-size: var(--body-size);
-  font-weight: 400;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  gap: var(--space-1);
+  letter-spacing: 0.08em;
+}
+
+/* A seta é decorativa — a direção já está no sinal (+/-) e na cor.
+   Antes era 6px, abaixo de qualquer piso legível. */
+.arrow {
+  /* 1em: nada renderiza abaixo do piso, nem glifo decorativo. Antes era 6px. */
+  font-size: 1em;
   line-height: 1;
 }
 
 .positive {
-  color: #3AAA62;
+  color: var(--color-positive);
 }
 
 .negative {
-  color: var(--color-crimson-text);
+  color: var(--color-negative);
 }
