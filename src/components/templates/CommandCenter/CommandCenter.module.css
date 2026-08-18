@@ -1,12 +1,26 @@
 .root {
   width: 100%;
-  min-height: 100dvh;
-  height: 100dvh;
+  /* Base em vh; dvh entra por @supports abaixo.
+     NÃO usar declaração duplicada como fallback: o minificador de produção
+     colapsa as duas e mantém só a última — o fallback existiria em dev e
+     sumiria no build. Sem altura definida aqui, `.body` (flex:1) fica com zero
+     e o hero absoluto colapsa: o 2D segue perfeito e a camada 3D some inteira. */
+  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--color-black);
   overflow: hidden;
   animation: rootFadeIn var(--motion-duration-slow) var(--motion-easing-enter) both;
+}
+
+/* dvh acompanha a barra do browser no iOS, onde 100vh deixa o rodapé sob ela.
+   Regra própria para sobreviver à minificação. */
+@supports (height: 100dvh) {
+  .root {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
 }
 
 @keyframes rootFadeIn {
@@ -29,6 +43,9 @@
   position: absolute;
   inset: 0;
   z-index: var(--z-hero);
+  /* Piso defensivo: a camada 3D nunca deve ficar com zero de altura, mesmo se
+     a cadeia de flex acima falhar por qualquer motivo. */
+  min-height: 240px;
 }
 
 .bottomInner {
@@ -67,7 +84,7 @@
 @media (max-width: 900px) {
   .root {
     height: auto;
-    min-height: 100dvh;
+    min-height: 100vh;
     overflow: visible;
   }
 
@@ -80,10 +97,22 @@
   .main {
     position: relative;
     inset: auto;
-    height: 45dvh;
+    height: 45vh;
     min-height: 280px;
     flex-shrink: 0;
     order: -1;
+  }
+}
+
+@supports (height: 100dvh) {
+  @media (max-width: 900px) {
+    .root {
+      min-height: 100dvh;
+    }
+
+    .main {
+      height: 45dvh;
+    }
   }
 }
 

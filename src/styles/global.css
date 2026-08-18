@@ -37,9 +37,16 @@ body,
 }
 
 body {
-  /* dvh acompanha a barra do browser no iOS; 100vh sozinho deixa o rodapé
-     permanentemente sob ela. */
-  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+/* dvh acompanha a barra do browser no iOS, onde 100vh deixa o rodapé sob ela.
+   Em regra própria: o minificador colapsa declarações duplicadas e manteria
+   apenas a última, apagando o fallback no build. */
+@supports (height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
 }
 
 ::selection {
