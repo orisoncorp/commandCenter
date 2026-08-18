@@ -12,10 +12,16 @@
   --color-offwhite: #e8e6e1;
 
   /* Canais RGB — permitem rgb(var(--x) / <alpha>) sem reescrever o hex.
-     Antes desta camada, crimson aparecia em 4 notações diferentes. */
-  --color-crimson-rgb: 139, 26, 26;
-  --color-offwhite-rgb: 232, 230, 225;
-  --color-white-rgb: 255, 255, 255;
+     Antes desta camada, crimson aparecia em 4 notações diferentes.
+
+     SEPARADOS POR ESPAÇO, não por vírgula. `rgb()` aceita a sintaxe legada
+     com vírgulas OU a moderna com barra de alfa — misturar as duas é
+     inválido. Com vírgulas, `rgb(var(--color-crimson-rgb) / 0.15)` expande
+     para `rgb(139, 26, 26 / 0.15)`, que o parser rejeita: a cor vira
+     transparente e o divisor/hover/grid some sem nenhum erro no console. */
+  --color-crimson-rgb: 139 26 26;
+  --color-offwhite-rgb: 232 230 225;
+  --color-white-rgb: 255 255 255;
 
   /* ── Texto — escala concreta, sem empilhar opacity ────────────
      Todos passam WCAG AA sobre as três superfícies (10.0:1 – 17.8:1). */

@@ -37,7 +37,10 @@ function hexToRgbChannels(hex) {
   const h = hex.replace('#', '');
   const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
   const n = parseInt(full, 16);
-  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+  // Espaço, não vírgula: estes canais são consumidos como
+  // `rgb(var(--x) / <alpha>)`, e a sintaxe legada com vírgulas não pode ser
+  // combinada com a barra de alfa — o parser rejeita a cor inteira.
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
 }
 
 export function applyTheme(theme) {
