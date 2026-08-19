@@ -312,7 +312,9 @@ function ParticleField({ reducedMotion, hoveredId }) {
       // During wave: size grows 1.8×, opacity hits 0.9
       mainMatRef.current.size    = 0.030 + wavePeak * 0.024;
       mainMatRef.current.opacity = 0.55  + wavePeak * 0.35;
-      mainMatRef.current.needsUpdate = true;
+      // size e opacity são uniforms simples — o renderer os relê a cada
+      // frame. Setar needsUpdate aqui bumpava material.version e forçava
+      // reaquisição de programa a 60Hz, de graça.
     }
 
     const tp = geoTrail.attributes.position;
