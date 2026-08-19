@@ -1,15 +1,10 @@
 .label {
+  composes: microType from '../../../styles/primitives.module.css';
   display: inline-block;
-  font-family: var(--font-body);
-  font-size: var(--micro-size);
-  font-weight: var(--micro-weight);
-  letter-spacing: var(--micro-spacing);
-  text-transform: uppercase;
-  line-height: 1;
 }
 
 .muted {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .secondary {

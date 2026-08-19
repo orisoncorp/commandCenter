@@ -1,0 +1,69 @@
+.card {
+  padding: var(--space-4) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-bottom: var(--border-hairline) solid var(--color-glass-border);
+}
+
+.bar {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-white-rgb) / 0.03) 0%,
+    rgb(var(--color-white-rgb) / 0.07) 50%,
+    rgb(var(--color-white-rgb) / 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer var(--motion-duration-cinematic) var(--motion-easing-linear) infinite;
+  border-radius: var(--radius-sm);
+}
+
+.label {
+  width: 40%;
+  height: var(--micro-size);
+}
+
+.value {
+  width: 65%;
+  height: var(--value-lg);
+  margin-left: auto;
+}
+
+.hero {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-black);
+}
+
+.orb {
+  width: 40%;
+  max-width: 320px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  border: var(--border-hairline) solid rgb(var(--color-white-rgb) / 0.05);
+  background: radial-gradient(circle at 50% 50%, rgb(var(--color-crimson-rgb) / 0.06), transparent 70%);
+  animation: breathe var(--motion-duration-cinematic) var(--motion-easing-state) infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}

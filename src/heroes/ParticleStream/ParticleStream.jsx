@@ -4,8 +4,12 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import InteractivePoint from '../shared/InteractivePoint';
 import styles from './ParticleStream.module.css';
-import { useStream } from '../../data/DataProvider';
+import { useStream } from '../../data/contexts';
 import { calcStaggerDelay } from '../../motion/constants';
+import { usePrefersReducedMotion } from '../../motion/usePrefersReducedMotion';
+import { CANVAS_GL, CANVAS_DPR, applyClearColor, HERO_COLORS } from '../palette';
+
+const NO_RAYCAST = () => null;
 
 // ─── ribbon definitions ───────────────────────────────────────────────────────
 // Each ribbon is a horizontal streamline at a fixed (y_base, z) with sine undulation.
@@ -113,8 +117,8 @@ function ParticleField({ reducedMotion, hoveredId }) {
     const xOffsets   = new Float32Array(PARTICLE_COUNT); // initial X position [0..STREAM_WIDTH)
     const isCrimson  = new Uint8Array(PARTICLE_COUNT);
 
-    const offwhite = new THREE.Color('#e8e6e1');
-    const crimson  = new THREE.Color('#F06070');
+    const offwhite = new THREE.Color(HERO_COLORS.offwhite);
+    const crimson  = new THREE.Color(HERO_COLORS.crimsonBright);
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const ci = i < PARTICLE_COUNT * CRIMSON_FRACTION;
@@ -308,7 +312,9 @@ function ParticleField({ reducedMotion, hoveredId }) {
       // During wave: size grows 1.8×, opacity hits 0.9
       mainMatRef.current.size    = 0.030 + wavePeak * 0.024;
       mainMatRef.current.opacity = 0.55  + wavePeak * 0.35;
-      mainMatRef.current.needsUpdate = true;
+      // size e opacity são uniforms simples — o renderer os relê a cada
+      // frame. Setar needsUpdate aqui bumpava material.version e forçava
+      // reaquisição de programa a 60Hz, de graça.
     }
 
     const tp = geoTrail.attributes.position;
@@ -324,7 +330,8 @@ function ParticleField({ reducedMotion, hoveredId }) {
 
   return (
     <>
-      <points ref={mainRef} geometry={geoMain}>
+      {/* Sem opt-out, Points.raycast testava 656 pontos por pointermove. */}
+      <points ref={mainRef} geometry={geoMain} raycast={NO_RAYCAST}>
         <pointsMaterial
           ref={mainMatRef}
           vertexColors
@@ -335,7 +342,7 @@ function ParticleField({ reducedMotion, hoveredId }) {
           depthWrite={false}
         />
       </points>
-      <points ref={trailRef} geometry={geoTrail}>
+      <points ref={trailRef} geometry={geoTrail} raycast={NO_RAYCAST}>
         <pointsMaterial
           vertexColors
           size={0.020}
@@ -351,8 +358,8 @@ function ParticleField({ reducedMotion, hoveredId }) {
 
 // ─── guide lines (ribbon structure at opacity 0.06) ───────────────────────────
 
-function RibbonGuides() {
-  const geos = useMemo(() => {
+function buildRibbonGeos() {
+  {
     const STEPS = 80;
     return RIBBONS.map(rb => {
       const verts = new Float32Array(STEPS * 3);
@@ -368,9 +375,14 @@ function RibbonGuides() {
       g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
       return g;
     });
-  }, []);
+  }
+}
 
-  // Animate guide lines with the same ribbon phase drift
+function RibbonGuides() {
+  // Ref, não useMemo: estas geometrias são mutadas a cada frame, e mutar um
+  // valor devolvido por hook viola a regra de imutabilidade do React.
+  const [geos] = useState(buildRibbonGeos);
+
   const linesRef = useRef([]);
 
   useEffect(() => () => geos.forEach(g => g.dispose()), [geos]);
@@ -385,6 +397,10 @@ function RibbonGuides() {
       for (let i = 0; i < STEPS; i++) {
         const t = i / (STEPS - 1);
         const y = rb.y + rb.amp * Math.sin(t * Math.PI * 4 + rb.phase + elapsed * 0.35 * rb.freq);
+        // Escape hatch consciente: atualizar um BufferAttribute exige mutar
+        // o typed array no lugar — realocar por frame anularia o ganho de
+        // usar Points para 656 partículas.
+        // eslint-disable-next-line react-hooks/immutability
         attr.array[i * 3 + 1] = y;
       }
       attr.needsUpdate = true;
@@ -394,9 +410,9 @@ function RibbonGuides() {
   return (
     <>
       {geos.map((geo, ri) => (
-        <line key={ri} ref={el => { linesRef.current[ri] = el; }} geometry={geo}>
+        <line key={ri} ref={el => { linesRef.current[ri] = el; }} geometry={geo} raycast={NO_RAYCAST}>
           <lineBasicMaterial
-            color="#e8e6e1"
+            color={HERO_COLORS.offwhite}
             transparent
             opacity={0.06 - RIBBONS[ri].depth * 0.04}
             depthWrite={false}
@@ -444,7 +460,9 @@ function StreamScene({ anchors, hoveredId, onHover, reducedMotion }) {
 export default function ParticleStream({ onHoverContract, hoveredContract }) {
   const { table } = useStream();
   const rotateResumeRef = useRef(null);
-  const reducedMotion = false; // live monitoring display — animations are core
+  // A instrumentação já existia e estava ligada; só o interruptor
+  // estava cravado em false.
+  const reducedMotion = usePrefersReducedMotion();
 
   const anchors = useMemo(() => ANCHOR_DATA.map(a => ({
     ...a,
@@ -465,20 +483,24 @@ export default function ParticleStream({ onHoverContract, hoveredContract }) {
   }, [onHoverContract]);
 
   useEffect(() => {
-    return () => { if (rotateResumeRef.current) clearTimeout(rotateResumeRef.current); };
+    const ref = rotateResumeRef;
+    return () => { if (ref.current) clearTimeout(ref.current); };
   }, []);
 
   return (
     <Canvas
       className={styles.canvas}
       camera={{ position: [0, 0, 3.4], fov: 36, near: 0.1, far: 100 }}
-      gl={{ antialias: true, alpha: false }}
-      onCreated={({ gl }) => gl.setClearColor('#0a0a0a', 1)}
+      gl={CANVAS_GL}
+      dpr={CANVAS_DPR}
+      /* `flat` desliga o ACES tone mapping default do R3F — sem ele a
+         cor autorada em JS não bate com o mesmo token no CSS. */
+      flat
+      onCreated={({ gl }) => applyClearColor(gl)}
     >
-      <ambientLight intensity={0.015} />
-      <pointLight position={[0,  2.5, 2]}  intensity={0.20} color="#ffffff" />
-      <pointLight position={[0, -2.0, -1]} intensity={0.08} color="#8B1A1A" />
-      <directionalLight position={[3, 1, 2]} intensity={0.10} color="#e8e6e1" />
+      {/* Luzes removidas: todo material aqui é não-iluminado
+          (MeshBasic/LineBasic/Points), então elas custavam travessia de
+          grafo por frame para contribuir zero pixel. */}
 
       <StreamScene
         anchors={anchors}

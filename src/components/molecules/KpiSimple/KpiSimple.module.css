@@ -1,31 +1,20 @@
 .card {
-  background: transparent;
-  padding: var(--space-3) var(--space-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--color-glass-border);
-  transition: background 200ms var(--motion-easing-state);
-}
-
-.card:last-child {
-  border-bottom: none;
-}
-
-.card:hover {
-  background: rgba(255, 255, 255, 0.02);
+  composes: card from '../../../styles/primitives.module.css';
 }
 
 .value {
-  font-family: var(--font-display);
-  font-size: var(--display-md);
-  font-weight: 300;
-  color: var(--color-text-primary);
-  line-height: 1;
-  letter-spacing: -0.5px;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "lnum", "tnum";
-  display: inline-block;
-  min-width: 140px;
+  composes: valueType from '../../../styles/primitives.module.css';
+  /* Live-updating: dígitos de largura fixa evitam que o número trema a
+     cada tick de 3s. É a exceção deliberada à regra de figuras
+     proporcionais, que pressupõe um número estático. */
+  composes: tabular from '../../../styles/primitives.module.css';
+  /* Ancorado à direita: o olho lê número pelas unidades. width:100% em vez
+     de min-width fixo — 140px cravado quebrava abaixo de 400px. */
+  width: 100%;
   text-align: right;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-state);
+}
+
+.updating {
+  opacity: 0.65;
 }

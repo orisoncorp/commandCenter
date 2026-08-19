@@ -1,25 +1,70 @@
 {
-  "title": "COMMAND CENTER",
+  "title": "Command Center",
   "hero": "globe",
+  "theme": {
+    "accent": "#8B1A1A",
+    "accentHover": "#A52020",
+    "accentText": "#F06070",
+    "dataPrimary": "#d34e45",
+    "surfaceDeep": "#0a0a0a",
+    "surface": "#0d0d0f",
+    "surfaceRaised": "#111113",
+    "positive": "#3AAA62",
+    "alert": "#E07840",
+    "negative": "#F06070"
+  },
   "panels": {
     "left": [
-      { "type": "kpi-simple", "source": "mrr", "label": "MRR ATUAL" },
-      { "type": "kpi-spark", "source": "conversao", "label": "CONVERSÃO" },
-      { "type": "kpi-simple", "source": "churn", "label": "CHURN RATE" }
+      {
+        "type": "kpi-simple",
+        "source": "mrr",
+        "label": "MRR atual"
+      },
+      {
+        "type": "kpi-spark",
+        "source": "conversao",
+        "label": "Conversão"
+      },
+      {
+        "type": "kpi-simple",
+        "source": "churn",
+        "label": "Churn rate"
+      }
     ],
     "right": [
-      { "type": "kpi-metric", "source": "ticket", "label": "TICKET MÉDIO" },
-      { "type": "kpi-simple", "source": "pipeline", "label": "PIPELINE" },
-      { "type": "kpi-ring", "source": "meta", "label": "META MENSAL" }
+      {
+        "type": "kpi-metric",
+        "source": "ticket",
+        "label": "Ticket médio"
+      },
+      {
+        "type": "kpi-simple",
+        "source": "pipeline",
+        "label": "Pipeline"
+      },
+      {
+        "type": "kpi-ring",
+        "source": "meta",
+        "label": "Meta mensal"
+      }
     ]
   },
   "bottom": {
     "type": "data-table",
     "source": "contracts",
-    "columns": ["empresa", "contrato", "mrr", "status", "revisao"]
+    "columns": [
+      "empresa",
+      "contrato",
+      "mrr",
+      "status",
+      "revisao"
+    ]
   },
   "header": {
-    "kpis": ["mrr", "contratos"],
+    "kpis": [
+      "mrr",
+      "contratos"
+    ],
     "showTimestamp": true
   },
   "data": {

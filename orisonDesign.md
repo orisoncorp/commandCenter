@@ -1,5 +1,5 @@
 ---
-version: "1.0"
+version: "1.1"
 name: Orison Brand System Prompt
 description: >
   Sistema de design e identidade visual da Orison — empresa de infraestrutura
@@ -44,102 +44,123 @@ colors:
   # Acento de borda
   border-accent: "#8B1A1A"
 
-  # Data Visualization — escalas expandidas
-  # Sequencial Crimson (8 steps — heatmaps, density maps)
-  crimson-scale-1: "#1A0505"
-  crimson-scale-2: "#2D0A0A"
-  crimson-scale-3: "#4A1010"
-  crimson-scale-4: "#6B1515"
-  crimson-scale-5: "#8B1A1A"
-  crimson-scale-6: "#A52020"
-  crimson-scale-7: "#C03030"
-  crimson-scale-8: "#D94040"
+  # Data Visualization — v1.1, validado com scripts/validate_palette.js
+  # A paleta anterior REPROVAVA sobre #0d0d0f: teal x steel davam ΔE 7.2 em
+  # visão normal (piso 15) e 4.9 em deuteranopia. Os seis ângulos de matiz
+  # da Orison foram preservados; só luminosidade e croma mudaram.
 
-  # Sequencial Neutral (8 steps — intensidade sem conotação)
-  neutral-scale-1: "#111113"
-  neutral-scale-2: "#1A1A1C"
-  neutral-scale-3: "#252527"
-  neutral-scale-4: "#303032"
-  neutral-scale-5: "#3A3A3C"
-  neutral-scale-6: "#4A4A4C"
-  neutral-scale-7: "#5A5A5C"
-  neutral-scale-8: "#6A6A6C"
+  # Categórica (6 — máximo). Ordem fixa: É o mecanismo de segurança CVD.
+  cat-crimson: "#c50006"
+  cat-teal: "#00999f"
+  cat-amber: "#f35c00"
+  cat-plum: "#a820a8"
+  cat-olive: "#327000"
+  cat-steel: "#0058d2"
 
-  # Divergente (5 steps — negativo ↔ neutro ↔ positivo)
-  divergent-neg-hi: "#8B1A1A"
-  divergent-neg: "#6B1515"
-  divergent-neutral: "#3A3A3C"
-  divergent-pos: "#1A5C2E"
-  divergent-pos-hi: "#27834A"
+  # Sequencial Crimson (6 steps). Seis, não oito: acima de ~7 classes as
+  # adjacentes borram, e 8 passos sobre quase-preto só cabem se o croma cair
+  # a ponto de deixar de ser crimson. Todos >= 2:1 contra a superfície.
+  seq-1: "#910009"
+  seq-2: "#a7211f"
+  seq-3: "#bd3833"
+  seq-4: "#d34e45"   # tinta de dado padrão — --color-data-primary
+  seq-5: "#ea6258"
+  seq-6: "#ff776b"
 
-  # Categórica (6 cores máximas — séries de chart)
-  cat-crimson: "#8B1A1A"
-  cat-amber: "#8B4A1A"
-  cat-teal: "#1A6B6B"
-  cat-steel: "#4A6A8B"
-  cat-olive: "#4A6B1A"
-  cat-plum: "#6B1A6B"
+  # Sequencial Neutro (6 steps)
+  neu-1: "#524442"
+  neu-2: "#635553"
+  neu-3: "#756664"
+  neu-4: "#887876"
+  neu-5: "#9b8a88"
+  neu-6: "#ae9d9b"
+
+  # Divergente (5). Em fundo escuro a lógica inverte: centro apagado,
+  # intensidade cresce para as pontas. A escala anterior não era monotônica.
+  div-neg-hi: "#ea3d38"
+  div-neg: "#a8564e"
+  div-neutral: "#605d5c"
+  div-pos: "#3b834e"
+  div-pos-hi: "#00a635"
+
+  # Série de contexto (padrão de ênfase: 1 cor + cinza)
+  dv-muted: "#5a5250"
 
 typography:
-  # Display — Cormorant Garamond (editorial, sofisticado)
-  display-hero:
-    fontFamily: Cormorant Garamond
-    fontSize: 56px
-    fontWeight: 300
-    letterSpacing: 18px
+  # Display — Cormorant Garamond (editorial, identidade)
+  # v1.1: reservado a wordmark, títulos de painel e peças editoriais.
+  # Valores numéricos migraram para o sans — ver `numeric` abaixo.
   display-xl:
     fontFamily: Cormorant Garamond
-    fontSize: 52px
+    fontSize: 3rem      # 48px
     fontWeight: 300
-    letterSpacing: 8px
+    letterSpacing: 0.16em
   display-lg:
     fontFamily: Cormorant Garamond
-    fontSize: 36px
+    fontSize: 2.25rem   # 36px
     fontWeight: 300
-    letterSpacing: 6px
+    letterSpacing: 0.16em
   display-md:
     fontFamily: Cormorant Garamond
-    fontSize: 28px
+    fontSize: 1.75rem   # 28px
     fontWeight: 300
-    letterSpacing: 6px
+    letterSpacing: 0.16em
   display-sm:
     fontFamily: Cormorant Garamond
-    fontSize: 20px
+    fontSize: 1.375rem  # 22px
     fontWeight: 300
-    letterSpacing: 16px
+    letterSpacing: 0.16em
   display-xs:
     fontFamily: Cormorant Garamond
-    fontSize: 18px
+    fontSize: 1.125rem  # 18px
     fontWeight: 300
-    letterSpacing: 4px
+    letterSpacing: 0.16em
 
-  # Body — Montserrat (técnico, preciso)
+  # Numérico — Montserrat. Todo valor de KPI, célula e eixo.
+  numeric-lg:
+    fontFamily: Montserrat
+    fontSize: 1.75rem   # 28px — KPI de painel
+    fontWeight: 500
+    letterSpacing: -0.01em
+  numeric-md:
+    fontFamily: Montserrat
+    fontSize: 1.25rem   # 20px — KPI de header
+    fontWeight: 500
+  numeric-sm:
+    fontFamily: Montserrat
+    fontSize: 1rem      # 16px
+
+  # Interface — Montserrat. Piso absoluto: 10px.
   body:
     fontFamily: Montserrat
-    fontSize: 11px
-    fontWeight: 300
-    lineHeight: 1.9
+    fontSize: 0.8125rem # 13px
+    fontWeight: 400
+    lineHeight: 1.6
+  text-sm:
+    fontFamily: Montserrat
+    fontSize: 0.875rem  # 14px
   label:
     fontFamily: Montserrat
-    fontSize: 9px
-    fontWeight: 400
-    letterSpacing: 5px
+    fontSize: 0.6875rem # 11px
+    fontWeight: 500
+    letterSpacing: 0.22em
   micro:
     fontFamily: Montserrat
-    fontSize: 8px
-    fontWeight: 400
-    letterSpacing: 4px
+    fontSize: 0.625rem  # 10px — PISO ABSOLUTO
+    fontWeight: 500
+    letterSpacing: 0.26em
 
 spacing:
   base: 8px
   1: 4px
   2: 8px
-  3: 16px
-  4: 24px
-  5: 32px
-  6: 48px
-  7: 64px
-  8: 80px
+  3: 12px   # v1.1 — o passo que faltava; sem ele a UI densa caía em 10/3/2px cru
+  4: 16px
+  5: 24px
+  6: 32px
+  7: 48px
+  8: 64px
+  9: 80px
 
 rounded:
   none: 0px
@@ -335,124 +356,103 @@ intenção.
 
 ## Data Visualization Colors
 
-Escalas de cor para uso exclusivo em visualização de dados — charts, KPIs,
-heatmaps e command centers. Estas cores não substituem a paleta de identidade:
-são extensões quantitativas dela, projetadas para comunicar magnitude, direção
-e categoria em contextos de dado. Ver seção 31 da página de preview.
+**Reescrito em v1.1.** A paleta anterior foi validada com
+`validate_palette.js` (skill `dataviz`) sobre a superfície `#0d0d0f` e
+**reprovou**:
 
-**Escala Sequencial — Crimson (8 steps):**
-Progressão de `#1A0505` (mínimo quase-preto) a `#D94040` (crimson claro).
-Usada em heatmaps, mapas de densidade e qualquer visualização onde a
-intensidade de um único fenômeno precisa ser codificada por cor. A escala
-ainda preserva o crimson como acento da identidade — o ponto mais escuro
-é negro-crimson, não cinza.
+```
+[FAIL] Chroma floor        teal #1A6B6B (0.074) e steel #4A6A8B (0.065) leem como cinza
+[FAIL] CVD separation      steel x teal ΔE 4.9 (deuteranopia)
+[FAIL] Normal-vision floor steel x teal ΔE 7.2 — o piso é 15
+[WARN] Contrast vs surface crimson 2.09 · amber 2.86 · plum 1.84 — abaixo de 3:1
+```
 
-| Token | Valor | Intensidade |
-|---|---|---|
-| `crimson-scale-1` | `#1A0505` | 0% — fundo quase-preto |
-| `crimson-scale-2` | `#2D0A0A` | 14% |
-| `crimson-scale-3` | `#4A1010` | 28% |
-| `crimson-scale-4` | `#6B1515` | 43% |
-| `crimson-scale-5` | `#8B1A1A` | 57% — crimson identidade |
-| `crimson-scale-6` | `#A52020` | 71% |
-| `crimson-scale-7` | `#C03030` | 85% |
-| `crimson-scale-8` | `#D94040` | 100% — máximo |
+Duas das seis séries eram indistinguíveis **mesmo com visão de cor normal**. As
+rampas sequenciais desperdiçavam os três primeiros passos abaixo do piso de
+visibilidade (1.01–1.27:1 — invisíveis sobre o fundo), e a escala divergente não
+era monotônica: `neg-hi` era mais clara que `neg`.
 
-**Escala Sequencial — Neutral (8 steps):**
-Progressão de `#111113` (midnight) a `#6A6A6C` (cinza médio). Usada para
-backgrounds de intensidade sem conotação semântica — quando a escala crimson
-carregaria implicação de alerta indesejada.
+**A correção preserva a identidade.** Os seis ângulos de matiz da Orison são
+mantidos (crimson 27°, amber 53°, olive 129°, teal 195°, steel 250°, plum 328°);
+apenas luminosidade e croma entraram na banda válida. A paleta resultante passa
+nas seis checagens:
 
-| Token | Valor | Uso |
-|---|---|---|
-| `neutral-scale-1` | `#111113` | Base — midnight |
-| `neutral-scale-5` | `#3A3A3C` | Médio — slate |
-| `neutral-scale-8` | `#6A6A6C` | Máximo — cinza |
+```
+[PASS] Lightness band       all 6 inside L 0.48–0.67
+[PASS] Chroma floor         all 6 >= 0.1
+[PASS] CVD separation       worst adjacent ΔE 16.5 (protan)
+[PASS] Normal-vision floor  worst adjacent ΔE 28.9
+[PASS] Contrast vs surface  all 6 >= 3:1
+```
 
-**Escala Divergente (5 steps):**
-Espectro de negativo a positivo, com neutro explícito no centro. Usada em
-comparações de performance, variações percentuais e qualquer dado com direção
-bipolar. O neutro `#3A3A3C` é exatamente o `slate` da identidade — os extremos
-são semânticos (crimson/verde), o centro é neutro.
-
-| Token | Valor | Semântica |
-|---|---|---|
-| `divergent-neg-hi` | `#8B1A1A` | Negativo alto |
-| `divergent-neg` | `#6B1515` | Negativo |
-| `divergent-neutral` | `#3A3A3C` | Neutro |
-| `divergent-pos` | `#1A5C2E` | Positivo |
-| `divergent-pos-hi` | `#27834A` | Positivo alto |
-
-**Escala Categórica (6 cores — máximo absoluto):**
-Seis cores discrimináveis para séries independentes em um mesmo chart.
-Crimson é sempre a série primária. Nunca use mais de 6 categorias em um
-único chart — acima disso, agrupe as menores em "Outros" usando `neutral-scale-5`.
-
-| Token | Valor | Uso |
-|---|---|---|
-| `cat-crimson` | `#8B1A1A` | Série primária — sempre |
-| `cat-amber` | `#8B4A1A` | Série 2 |
-| `cat-teal` | `#1A6B6B` | Série 3 |
-| `cat-steel` | `#4A6A8B` | Série 4 |
-| `cat-olive` | `#4A6B1A` | Série 5 |
-| `cat-plum` | `#6B1A6B` | Série 6 (máximo) |
+**A sobriedade não vem de dessaturar o dado.** Vem da superfície quase-preta e
+da parcimônia de cor. A paleta viva é reservada a **marcas finas** — linhas de
+2px, pontos de 8px ou mais, barras finas com topo arredondado de 4px. Um bloco
+grande e saturado seria off-brand; um traço preciso e legível não é.
 
 **Regras de data visualization:**
-- Nunca misture escalas sequencial e categórica no mesmo chart.
-- A escala divergente exige que o dado tenha um zero semântico real — não use
-  para dados sempre positivos.
-- Crimson categórico e crimson de identidade são o mesmo valor — não conflitam.
-- Em contextos de alto contraste ou acessibilidade, complemente cor com forma
-  (padrão de linha, ícone de status) — cor sozinha não é suficiente.
+
+- A **ordem** dos slots categóricos é o mecanismo de segurança CVD. Não
+  reordenar depois de fixada, e nunca ciclar para uma sétima série — dobre a
+  cauda em "Outros" ou facete em small multiples.
+- Nunca misture escala sequencial e categórica no mesmo chart.
+- A divergente exige um zero semântico real.
+- **Cor de identidade ≠ tinta de dado.** `crimson #8B1A1A` fica em 2.1:1 sobre
+  quase-preto — serve como acento estrutural, nunca como marca que codifica
+  valor. Conteúdo não-textual exige 3:1 (WCAG 1.4.11); use `seq-4 #d34e45`.
+- **Ênfase é a forma padrão** para série única: uma cor em destaque, o resto em
+  `dv-muted`. É a resposta honesta para a maioria dos widgets deste produto.
+- Complemente cor com forma quando a leitura for crítica — rótulo direto, vão
+  de 2px entre marcas, textura em contexto de acessibilidade.
+
+> A paleta categórica de 6 cores é um **ativo de sistema para verticais** com
+> charts multi-série. O Command Center base é todo de série única (stat tiles e
+> uma série de barras), então ela fica definida e validada, aguardando uso —
+> não é código morto, é inventário para migração.
 
 ---
 
 ## Typography
 
-A estratégia tipográfica emprega dois pesos e duas famílias complementares:
-**Cormorant Garamond** para a camada editorial e de identidade, e **Montserrat**
-para a camada técnica e funcional.
+**Alterado em v1.1.** A escala anterior (body 11px, label 9px, micro 8px, tudo
+em `px`, com `html{font-size:11px}`) tinha `--micro-size: 8px` como o token de
+texto mais usado do produto, e componentes desciam a 7px, 6px e 5px. Para um
+painel lido por executivos, isso não era densidade — era ilegibilidade. A
+escala nova mantém a densidade pelo espaçamento, não pelo encolhimento.
 
-**Display — Cormorant Garamond (Light, 300):**
-A família display é reservada para títulos, wordmarks e peças de alto impacto.
-Seu espírito serifa editorial cria o contraste de luxo necessário contra fundos
-escuros. O espaçamento de letras (letter-spacing) é sempre positivo e
-generoso — de 4px (`display-xs`) a 18px (`display-hero`) — criando presença
-arejada e autoridade.
+**Duas famílias, três papéis:**
 
-- **Display Hero (56px / 18px spacing):** Títulos de capa e cabeçalhos de
-  seção de alto impacto.
-- **Display XL (52px / 8px spacing):** Headings principais de seção.
-- **Display LG (36px / 6px spacing):** Títulos de subsessão e peças editoriais.
-- **Display MD (28px / 6px spacing):** Headings secundários em layouts de duas
-  colunas.
-- **Display SM (20px / 16px spacing, uppercase):** Wordmarks horizontais e
-  subtítulos com maiúsculas.
-- **Display XS (18px / 4px spacing):** Citações curtas e nomenclatura de
-  aplicações.
+- **Cormorant Garamond** — camada editorial e de identidade: wordmark, títulos
+  de painel, peças de alto impacto.
+- **Montserrat (500)** — camada numérica: todo valor de KPI, célula de tabela e
+  rótulo de eixo.
+- **Montserrat (400/500)** — camada de interface: corpo, rótulos, metadados.
 
-**Body & Label — Montserrat:**
-O Montserrat é a voz técnica da Orison. Sua geometria limpa evoca precisão de
-instrumento. Todos os tamanhos são pequenos por design — a densidade
-informacional é uma característica da identidade, não uma limitação.
+**Por que os números saíram da serifada:** Cormorant Light 300 sobre fundo
+quase-preto perde peso óptico, e a fonte usa algarismos old-style por padrão —
+os dígitos 3, 4, 5, 7 e 9 caem abaixo da baseline. A v1.0 remendava isso com
+`lnum`/`tnum` em todo elemento numérico. Um sans de peso 500 resolve na raiz e
+devolve peso ao número, que é o que se lê.
 
-- **Body (11px / Light / Line-height 1.9):** Parágrafos, descrições de
-  especificação e copy de interface. O line-height generoso (1.9) garante
-  legibilidade a tamanhos pequenos.
-- **Label (9px / Regular / 5px tracking, uppercase):** Rótulos de componentes,
-  cabeçalhos de tabela, identificadores de token e botões. Sempre maiúsculas.
-- **Micro (8px / Regular / 4px tracking, uppercase):** Badges, versões,
-  numeração de seção e metadados de menor hierarquia.
+**Regras:**
 
-**Regras tipográficas:**
-- Nunca use mais de dois pesos em uma mesma peça (ex.: Light + Regular).
-- Nunca use itálico no Cormorant para UI — reservado para citações literárias
-  pontuais.
-- Texto de interface nunca excede `body` (11px) em tamanho de corpo.
-- Wordmarks usam sempre `display-sm` (vertical) ou `display-xs` (horizontal)
-  com uppercase.
-- Nunca use fontes fora do sistema sem aprovação — não substitua Cormorant por
-  Georgia nem Montserrat por Arial.
+- **Piso absoluto de 10px.** Nada renderiza abaixo disso — nem glifo decorativo.
+- **Escala em `rem`, raiz em `html { font-size: 100% }`.** Nunca aplicar
+  `font-size` no `html` junto com uma escala em rem: o rem compõe sobre si
+  mesmo e a escala inteira encolhe (foi assim que 10px virou 8.1px em teste).
+- **Tracking em `em`, nunca em `px`.** 5px sobre um glifo de 9px é 0.56em; o
+  mesmo token sobre 28px seria 0.18em. Tracking em px não é reutilizável.
+- Máximo de dois pesos por peça.
+- `tabular-nums` **só em colunas** — tabelas e ticks de eixo. Em número grande
+  e isolado, largura fixa por dígito deixa "121" frouxo. Exceção deliberada:
+  valores de KPI que atualizam ao vivo usam tabular, porque sem isso o número
+  treme a cada tick.
+- Carregar a fonte via `<link>` com `preconnect` no `index.html` — nunca por
+  `@import` aninhado dentro de outro `@import`.
+
+**Nota sobre Montserrat:** o detector do Impeccable a sinaliza como fonte
+saturada. Ela é a voz técnica fixada da marca; o achado está registrado e
+aceito deliberadamente, não omitido.
 
 ---
 
@@ -467,16 +467,20 @@ exatos de 8 (com a exceção do meio-passo de 4px para micro-ajustes).
 
 **Escala de espaçamento:**
 
-| Token     | Valor | Nome    | Uso típico                                 |
-|-----------|-------|---------|--------------------------------------------|
-| `space-1` | 4px   | XS      | Gaps internos mínimos, icon-text gaps      |
-| `space-2` | 8px   | S       | Gaps entre rótulos e valores               |
-| `space-3` | 16px  | M       | Padding interno de cells e tags            |
-| `space-4` | 24px  | ML      | Gutters de grid, gap padrão entre cards    |
-| `space-5` | 32px  | L       | Padding de painéis menores, seções         |
-| `space-6` | 48px  | XL      | Gaps verticais entre blocos de conteúdo    |
-| `space-7` | 64px  | 2XL     | Separação de seções maiores                |
-| `space-8` | 80px  | 3XL     | Padding externo das seções principais      |
+| Token     | Valor | Uso típico                                      |
+|-----------|-------|-------------------------------------------------|
+| `space-1` | 4px   | Gaps internos mínimos, icon-text gaps           |
+| `space-2` | 8px   | Gaps entre rótulos e valores                    |
+| `space-3` | 12px  | **v1.1** — o meio-passo que a UI densa exigia   |
+| `space-4` | 16px  | Padding interno de cells e cards                |
+| `space-5` | 24px  | Gutters de grid, gap padrão entre cards         |
+| `space-6` | 32px  | Padding de painéis menores                      |
+| `space-7` | 48px  | Gaps verticais entre blocos                     |
+| `space-8` | 64px  | Separação de seções maiores                     |
+| `space-9` | 80px  | Padding externo das seções principais           |
+
+Sem o passo de 12px, cinco componentes recorriam a `10px`, `3px` e `2px`
+crus — a escala era grosseira demais na base e o produto optava por sair dela.
 
 **Grid interno:**
 - Seções usam grid de 2 colunas (`1fr 1fr`) com gap de `2px` — a ausência de
@@ -692,31 +696,48 @@ Hint abaixo: Micro (8px, 2px tracking, `text-muted`).
 
 ### KPI Cards
 
-Quatro variantes (Simple, Spark, Ring, Metric). Tipografia `display-md` (28px, Cormorant Garamond, weight 300) para o valor principal. Label em Micro (uppercase). Sem borda arredondada.
-
-**Renderização numérica obrigatória em todo elemento que exibe número:**
+Quatro variantes (Simple, Spark, Ring, Metric). **v1.1:** o valor principal usa
+`numeric-lg` — Montserrat 500 a 28px — não mais a display serifada. Rótulo em
+Micro. Sem borda arredondada, sem borda própria.
 
 ```css
-font-variant-numeric: tabular-nums;
+.value {
+  font-family: var(--font-body);
+  font-size: var(--value-lg);
+  font-weight: var(--value-weight);   /* 500 */
+  letter-spacing: var(--tracking-value);
+  /* Ancorado à direita: o olho lê número pelas unidades. */
+  width: 100%;
+  text-align: right;
+}
+```
+
+**Renderização numérica:**
+
+```css
+font-variant-numeric: tabular-nums lining-nums;
 font-feature-settings: "lnum", "tnum";
 ```
 
-- `lnum` — lining numerals: força todos os dígitos à mesma altura de baseline. Sem `lnum`, o Cormorant Garamond usa old-style numerals por padrão — dígitos 3, 4, 5, 7 e 9 ficam abaixo da baseline, criando inconsistência visual.
-- `tnum` — tabular numerals: garante largura fixa por dígito via OpenType, reforçando o efeito de `tabular-nums`.
+Obrigatório em valores que **atualizam ao vivo** e em **colunas** de tabela. Em
+número grande, isolado e estático, use figuras proporcionais — largura fixa por
+dígito deixa "121" frouxo em display size.
 
-Ambas as propriedades são obrigatórias. Omitir qualquer uma produz numerais desalinhados verticalmente ou com largura variável.
+**Estabilidade de layout:** `width: 100%` + `text-align: right`, não
+`min-width` fixo. A v1.0 cravava `min-width: 140px`, o que quebrava abaixo de
+400px de viewport. A âncora à direita dá a mesma estabilidade sem piso rígido.
 
-**Estabilidade de layout em atualizações ao vivo:**
+**Anel de progresso (KpiRing):**
 
-```css
-display: inline-block;
-min-width: 140px;   /* display-md: cobre "R$ 102.000" */
-text-align: right;
-```
-
-`min-width` fixo previne layout shift quando o comprimento do número muda (ex.: `"R$ 89.636"` → `"R$ 102.000"`). `text-align: right` ancora os dígitos pelo lado das unidades — o olho lê números da direita para a esquerda. Sem `min-width`, o container encolhe com o número e empurra elementos adjacentes.
-
-Valores por contexto: `140px` para `display-md`, `100px` para `display-xs` (Header), `60px` para percentuais (KpiRing).
+- O percentual é `value / target`, **clampado nos dois extremos**. Sem o piso,
+  um valor negativo gera `strokeDasharray` negativo — declaração inválida que o
+  browser descarta inteira, e o anel renderiza **completo**: um KPI negativo
+  exibido como 100% de atingimento.
+- O track do anel codifica o restante, então é conteúdo não-textual com
+  exigência de 3:1. `border-color` (#2e2e2e, 1.4:1) não serve;
+  use `--color-ring-track`.
+- Um único encoding numérico por anel. A v1.0 imprimia o mesmo número duas
+  vezes — 7px dentro do anel e 28px ao lado.
 
 ---
 
@@ -736,26 +757,38 @@ Variantes de célula:
 
 ### Motion
 
-A Orison usa um sistema de 4 tokens de transição. A easing padrão é linear
-suave; ações de alto impacto usam o spring `cubic-bezier(0.16, 1, 0.3, 1)`.
+Escala fechada de durações e seis curvas. Os tokens existem em duas cópias —
+`src/tokens/motion.css` e `src/motion/constants.js` — porque WebGL e WAAPI não
+leem custom properties. `assertMotionParity()` roda em dev e falha alto se as
+duas divergirem.
 
-| Token              | Duração | Easing                              | Uso                                    |
-|--------------------|---------|-------------------------------------|----------------------------------------|
-| `transition-instant` | 0.1s  | `ease`                              | Feedback imediato (toggle, check)      |
-| `transition-fast`    | 0.2s  | `ease`                              | Hover states, cores, opacity           |
-| `transition-base`    | 0.3s  | `ease`                              | Transições padrão de estado            |
-| `transition-slow`    | 0.6s  | `cubic-bezier(0.16, 1, 0.3, 1)`    | Entrada de painéis, modais, reveals    |
+| Token      | Duração | Uso                                    |
+|------------|---------|----------------------------------------|
+| `instant`  | 80ms    | Swap de valor ao vivo                  |
+| `fast`     | 150ms   | Hover, cor, opacidade                  |
+| `base`     | 250ms   | Transição de estado padrão             |
+| `moderate` | 400ms   | Entrada de painel, reveal de barra     |
+| `slow`     | 600ms   | Reveal de sparkline, arco de anel      |
+| `dramatic` | 900ms   | Contagem de KPI no mount               |
+| `exit`     | 150ms   | **Toda saída** — mais rápida que a entrada |
 
-Animações de scroll-reveal usam `transition-slow` com `translateY(24px) → 0`
-e stagger de `80ms` entre elementos adjacentes.
+**Regras:**
 
-**Regras de motion:**
-- Nunca use `transition: all` — especifique apenas as propriedades afetadas.
-- Respeite `prefers-reduced-motion`: desative translateY reveals e reduza
-  durações a `0.01s`.
-- Não use bounces exagerados nem loops de animação em UI de dados.
-
----
+- Nunca `transition: all`.
+- **Saída mais rápida que entrada.** Os tokens `enter` e `exit` da v1.0 eram
+  byte-idênticos, o que anulava o motivo de existirem dois.
+- **`prefers-reduced-motion` não é um kill global.** Um override de `0.01s` em
+  tudo destrói o feedback de estado junto com a decoração. A alternativa
+  intencional: coreografia de entrada e loops decorativos somem
+  (`animation-duration: 1ms`, `iteration-count: 1`); transições de **estado**
+  sobrevivem comprimidas a 80ms.
+- **CSS não alcança a camada 3D nem motion em JS.** Loops de `useFrame`,
+  `requestAnimationFrame` e WAAPI precisam ler a preferência explicitamente —
+  `usePrefersReducedMotion()`. Na v1.0 os quatro heroes tinham
+  `reducedMotion = false` cravado no código, com toda a instrumentação já
+  construída e ligada.
+- **Animação 3D multiplica por `delta`.** Um `+= 0.002` por frame roda 2,4×
+  mais rápido num monitor de 144Hz. Nunca cravar `0.016` como frame time.
 
 ## Do's and Don'ts
 
@@ -776,12 +809,15 @@ e stagger de `80ms` entre elementos adjacentes.
   correta da escala.
 
 **Tipografia:**
-- ✓ Use Cormorant para editorial e identidade; Montserrat para interface e
-  dados técnicos.
+- ✓ Use Cormorant para editorial e identidade; Montserrat para interface,
+  dados técnicos e **todo valor numérico**.
 - ✓ Letras maiúsculas apenas em labels e micro — nunca em parágrafos.
+- ✓ Escala em `rem`; tracking em `em`.
+- ✗ **Nunca abaixo de 10px** — nem para glifo decorativo.
+- ✗ Não aplique `font-size` no `html` junto de uma escala em rem.
 - ✗ Não use mais de dois pesos tipográficos em uma peça.
 - ✗ Não substitua as famílias por fontes do sistema.
-- ✗ Não use tamanhos fora da escala definida.
+- ✗ Não use `tabular-nums` em número grande e isolado (exceto valor ao vivo).
 
 **Layout:**
 - ✓ Use espaçamentos sempre em múltiplos de 8px (ou 4px para micro-ajuste).

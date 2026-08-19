@@ -490,6 +490,67 @@ Montar `src/configs/{vertical-name}.json` com a estrutura:
 
 ---
 
+## Passo 6b — Bloco `theme`: a marca do cliente
+
+Adicionado na v1.1. Antes disto o config controlava layout mas **não**
+identidade — toda vertical saía com o crimson da Orison, e este runbook não
+tinha onde plugar a marca do cliente.
+
+```json
+"theme": {
+  "accent":        "#8B1A1A",
+  "accentHover":   "#A52020",
+  "accentText":    "#F06070",
+  "dataPrimary":   "#d34e45",
+  "surfaceDeep":   "#0a0a0a",
+  "surface":       "#0d0d0f",
+  "surfaceRaised": "#111113",
+  "positive":      "#3AAA62",
+  "alert":         "#E07840",
+  "negative":      "#F06070",
+  "fontDisplay":   "'Cormorant Garamond', serif",
+  "fontBody":      "'Montserrat', sans-serif"
+}
+```
+
+`src/theme/applyTheme.js` mapeia cada chave para a custom property
+correspondente no `:root`, antes do primeiro paint. Só chaves conhecidas são
+aplicadas — um config não injeta CSS arbitrário.
+
+### Regras ao trocar a marca
+
+Estes não são detalhes estéticos; são os pontos onde uma troca de cor quebra
+acessibilidade em silêncio:
+
+1. **`accent` é acento estrutural, `dataPrimary` é tinta de dado.** São chaves
+   separadas de propósito. O crimson da Orison fica em 2.1:1 sobre quase-preto
+   — bonito como borda e halo, ilegível como barra de gráfico. Se o cliente tem
+   uma marca escura, `dataPrimary` precisa ser um passo mais claro do mesmo
+   matiz, não a cor da marca.
+
+2. **Verifique contraste depois de trocar.** Texto ≥ 4.5:1, marca de dado
+   ≥ 3:1, contra `surface`. Uma marca clara sobre fundo escuro passa fácil; uma
+   marca escura não.
+
+3. **Charts multi-série usam a paleta categórica** de `src/tokens/dataviz.css`,
+   não o accent do cliente. Ela é validada para CVD e a ordem dos slots é o
+   mecanismo de segurança — não reordene por gosto. Revalide com
+   `validate_palette.js` se o cliente exigir hues próprios:
+
+   ```bash
+   node <dataviz>/scripts/validate_palette.js "#h1,#h2,..." --mode dark --surface "<surface>"
+   ```
+
+   O procedimento de ajuste é *snap-to-passing*: preserve o ângulo de matiz do
+   cliente, mova só luminosidade e croma até a paleta passar. Foi assim que a
+   própria paleta Orison foi corrigida sem perder identidade.
+
+4. **A camada 3D não lê CSS.** `themeHeroColors()` em `applyTheme.js` deriva as
+   cores dos heroes do mesmo bloco. Se adicionar cor 3D nova, adicione lá — não
+   em literal dentro do hero.
+
+---
+
 ## Passo 7 — Validar contra Quality Gates
 
 Antes de considerar a migração completa, verificar todos os critérios (ver seção Quality Gates abaixo).

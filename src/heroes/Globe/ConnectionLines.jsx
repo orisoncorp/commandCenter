@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { HERO_COLORS } from '../palette';
+
+const NO_RAYCAST = () => null;
 
 const CONNECTIONS = [
   { a: { lat: -23.55, lng: -46.63 }, b: { lat: -30.03, lng: -51.23 } },
@@ -49,10 +52,11 @@ function ArcLine({ conn, phaseOffset }) {
   });
 
   return (
-    <line ref={lineRef} geometry={geometry}>
+    <line ref={lineRef} geometry={geometry} raycast={NO_RAYCAST}>
       <lineDashedMaterial
         ref={matRef}
-        color="#8B1A1A"
+        color={HERO_COLORS.crimson}
+        toneMapped={false}
         transparent
         opacity={0.25}
         linewidth={1.5}

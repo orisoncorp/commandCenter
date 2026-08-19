@@ -1,5 +1,6 @@
 :root {
-  /* Superfícies */
+  /* ── Superfícies ──────────────────────────────────────────────
+     Profundidade por contraste tonal, não por sombra difusa. */
   --color-black: #0a0a0a;
   --color-midnight: #111113;
   --color-surface: #0d0d0f;
@@ -10,31 +11,68 @@
   --color-subtle: #484848;
   --color-offwhite: #e8e6e1;
 
-  /* Texto */
+  /* Canais RGB — permitem rgb(var(--x) / <alpha>) sem reescrever o hex.
+     Antes desta camada, crimson aparecia em 4 notações diferentes.
+
+     SEPARADOS POR ESPAÇO, não por vírgula. `rgb()` aceita a sintaxe legada
+     com vírgulas OU a moderna com barra de alfa — misturar as duas é
+     inválido. Com vírgulas, `rgb(var(--color-crimson-rgb) / 0.15)` expande
+     para `rgb(139, 26, 26 / 0.15)`, que o parser rejeita: a cor vira
+     transparente e o divisor/hover/grid some sem nenhum erro no console. */
+  --color-crimson-rgb: 139 26 26;
+  --color-offwhite-rgb: 232 230 225;
+  --color-white-rgb: 255 255 255;
+
+  /* ── Texto — escala concreta, sem empilhar opacity ────────────
+     Todos passam WCAG AA sobre as três superfícies (10.0:1 – 17.8:1). */
   --color-text-primary: #f7f5f0;
   --color-text-body: #edeae4;
   --color-text-secondary: #d4d2cd;
   --color-text-muted: #bcbab5;
 
-  /* Acento */
+  /* ── Acento ───────────────────────────────────────────────────
+     crimson é FILL, nunca texto (2.09:1). crimson-text é a variante
+     legível (6.11:1) para qualquer glifo. */
   --color-crimson: #8B1A1A;
   --color-red: #A52020;
   --color-crimson-text: #F06070;
 
-  /* Semânticas */
-  --color-negative-hi: #8B1A1A;
-  --color-negative-md: #C0392B;
-  --color-alert-hi: #8B4A1A;
-  --color-alert-md: #C0622B;
-  --color-positive-hi: #1A5C2E;
-  --color-positive-md: #27834A;
+  /* ── Semântica ────────────────────────────────────────────────
+     Estes são os valores que o produto realmente usa. Antes viviam
+     hardcoded nos componentes enquanto os tokens declarados (e
+     diferentes) ficavam mortos. Todos passam AA como texto. */
+  --color-positive: #3AAA62;   /* 6.57:1 */
+  --color-alert: #E07840;      /* 6.41:1 */
+  --color-negative: #F06070;   /* 6.11:1 */
 
-  /* Overlay */
-  --color-overlay: rgba(10, 10, 10, 0.75);
-  --color-panel-bg: rgba(13, 13, 15, 0.75);
+  /* Fundos de tint para badges/chips */
+  --color-positive-bg: rgb(58 170 98 / 0.15);
+  --color-alert-bg: rgb(224 120 64 / 0.15);
+  --color-negative-bg: rgb(var(--color-crimson-rgb) / 0.15);
+  --color-neutral-bg: rgb(90 90 90 / 0.15);
+
+  /* ── Vidro ────────────────────────────────────────────────────*/
   --color-glass-surface: rgba(13, 13, 15, 0.72);
   --color-glass-header: rgba(17, 17, 19, 0.88);
   --color-glass-detail: rgba(13, 13, 15, 0.92);
-  --color-glass-border: rgba(255, 255, 255, 0.04);
-  --color-glass-shadow: rgba(139, 26, 26, 0.12);
+  --color-glass-border: rgb(var(--color-white-rgb) / 0.10);
+
+  /* ── Superfícies de card ──────────────────────────────────────
+     rgba(255,255,255,0.02) aparecia 5× sem token. */
+  --color-card-surface: transparent;
+  --color-card-hover: rgb(var(--color-white-rgb) / 0.03);
+  --color-row-hover: rgb(var(--color-white-rgb) / 0.04);
+
+  /* ── Marcas de dado ───────────────────────────────────────────
+     Conteúdo não-textual precisa de ≥3:1 (WCAG 1.4.11). O crimson
+     de identidade (1.9:1) não serve como tinta de dado sobre preto. */
+  /* Derivados da rampa de dataviz — mesma fonte de verdade, não um hex
+     paralelo. --dv-seq-4 é #d34e45 (4.6:1 sobre a superfície). */
+  --color-data-primary: var(--dv-seq-4);
+  /* Encadeado em data-primary, não na rampa: assim o bloco `theme` do config
+     retargeta o anel junto com o resto da tinta de dado. */
+  --color-ring-fill: var(--color-data-primary);
+  --color-data-muted: var(--dv-muted);
+  --color-ring-track: #625e5d;     /* 3.05:1 — codifica o restante, exige 3:1 */
+  --color-chart-grid: rgb(var(--color-white-rgb) / 0.07);
 }

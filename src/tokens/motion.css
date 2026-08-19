@@ -1,11 +1,17 @@
 :root {
-  --motion-easing-enter: cubic-bezier(0.25, 0.1, 0.25, 1.0);
-  --motion-easing-exit: cubic-bezier(0.25, 0.1, 0.25, 1.0);
-  --motion-easing-state: cubic-bezier(0.4, 0.0, 0.2, 1.0);
+  /* ── Easing ───────────────────────────────────────────────────
+     enter e exit eram byte-idênticos. Assimetria é o motivo de
+     existirem dois tokens: saída mais rápida que entrada. */
+  --motion-easing-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-easing-state: cubic-bezier(0.4, 0, 0.2, 1);
   --motion-easing-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
   --motion-easing-linear: linear;
-  --motion-easing-micro: cubic-bezier(0.0, 0.0, 0.2, 1.0);
+  --motion-easing-micro: cubic-bezier(0, 0, 0.2, 1);
 
+  /* ── Duração ──────────────────────────────────────────────────
+     Escala fechada. Call sites que usavam 180/200/280/500ms foram
+     realinhados — uma escala com onze valores não é uma escala. */
   --motion-duration-instant: 80ms;
   --motion-duration-fast: 150ms;
   --motion-duration-base: 250ms;
@@ -13,4 +19,13 @@
   --motion-duration-slow: 600ms;
   --motion-duration-dramatic: 900ms;
   --motion-duration-cinematic: 1400ms;
+
+  /* Saída é sempre mais rápida que a entrada correspondente. */
+  --motion-duration-exit: 150ms;
+
+  /* Loop de status ao vivo — não é transição, é batimento. */
+  --motion-pulse: 2000ms;
 }
+
+/* Reduced motion é tratado em styles/global.css com alternativa
+   intencional, não com um kill global de 0.01s. */

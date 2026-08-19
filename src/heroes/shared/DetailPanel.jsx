@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styles from './shared.module.css';
 import Badge from '../../components/atoms/Badge/Badge';
-import { formatBRL } from '../../data/format';
+import { formatBRL, formatDate } from '../../data/format';
 
 const STATUS_VARIANT = {
   ativo: 'positive',
@@ -91,7 +91,9 @@ export default function DetailPanel({ contract, anchor }) {
         <div className={styles.detailRow}>
           <span className={styles.detailLabel}>REVISÃO</span>
           <span className={styles.detailValue}>
-            {new Date(contract.revisao).toLocaleDateString('pt-BR')}
+            {/* `new Date('2026-06-15')` é meia-noite UTC e renderiza o dia
+                anterior em todo o Brasil. formatDate usa parseLocalDate. */}
+            {formatDate(contract.revisao)}
           </span>
         </div>
       </div>

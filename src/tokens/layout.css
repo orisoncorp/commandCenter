@@ -1,0 +1,50 @@
+:root {
+  /* ── Raio ─────────────────────────────────────────────────────
+     Austeridade geométrica: zero é o padrão. Os poucos raios
+     existem para suavizar arestas tecnicamente, nunca como
+     elemento de identidade. */
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-full: 9999px;
+
+  /* ── Borda ────────────────────────────────────────────────────*/
+  --border-hairline: 1px;
+
+  /* ── Blur ─────────────────────────────────────────────────────
+     Antes: 8/10/10/12/16px à mão, sem token. */
+  --blur-panel: 10px;
+  --blur-header: 12px;
+  --blur-detail: 16px;
+
+  /* ── Sombra ───────────────────────────────────────────────────
+     Offset + blur suave. Halo colorido sem offset é decoração. */
+  --shadow-sm: 0 8px 16px rgb(0 0 0 / 0.6);
+  --shadow-md: 0 16px 32px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 24px 48px rgb(0 0 0 / 0.7);
+  --shadow-inset-top: inset 0 1px 0 rgb(var(--color-offwhite-rgb) / 0.04);
+
+  /* ── Camadas ──────────────────────────────────────────────────*/
+  --z-hero: 0;
+  --z-panel: 10;
+  --z-header: 20;
+
+  /* ── Dimensões de casca ───────────────────────────────────────
+     A calha tinha três larguras conflitantes (280/260/240). */
+  --size-header-h: 48px;
+  --size-bottom-h: 200px;
+  --size-rail-w: 280px;
+  --size-insight-w: 260px;
+  --size-feed-w: 240px;
+  --size-fade: 64px;
+
+  /* Alvo de toque mínimo — WCAG 2.5.8 pede 24×24. */
+  --size-touch-min: 24px;
+
+  /* ── Breakpoints ──────────────────────────────────────────────
+     Valores de referência (media queries não leem custom properties;
+     estes existem para documentar e para uso em JS). */
+  --bp-sm: 600px;
+  --bp-md: 900px;
+  --bp-lg: 1100px;
+  --bp-xl: 1400px;
+}

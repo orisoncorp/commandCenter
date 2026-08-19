@@ -3,6 +3,7 @@ import HeaderBar from '../../organisms/HeaderBar/HeaderBar';
 import Panel from '../../organisms/Panel/Panel';
 import HeroContainer from '../../organisms/HeroContainer/HeroContainer';
 import BottomBar from '../../organisms/BottomBar/BottomBar';
+import ErrorBoundary from '../../organisms/ErrorBoundary/ErrorBoundary';
 import KpiSimple from '../../molecules/KpiSimple/KpiSimple';
 import KpiSpark from '../../molecules/KpiSpark/KpiSpark';
 import KpiRing from '../../molecules/KpiRing/KpiRing';
@@ -12,23 +13,10 @@ import DataTable from '../../molecules/DataTable/DataTable';
 import EventFeed from '../../molecules/EventFeed/EventFeed';
 import InsightCard from '../../molecules/InsightCard/InsightCard';
 import HeroToggle from '../../organisms/HeroToggle/HeroToggle';
-import { lazy, Suspense, useCallback, useMemo, memo, useState } from 'react';
-import { useData } from '../../../data/DataProvider';
-
-const Globe = lazy(() => import('../../../heroes/Globe/Globe'));
-const NetworkGraph = lazy(() => import('../../../heroes/NetworkGraph/NetworkGraph'));
-const ParticleStream = lazy(() => import('../../../heroes/ParticleStream/ParticleStream'));
-const DataCube = lazy(() => import('../../../heroes/DataCube/DataCube'));
-
-export const HERO_MAP = {
-  globe: Globe,
-  network: NetworkGraph,
-  particles: ParticleStream,
-  cube: DataCube,
-};
-
-const HERO_KEYS = Object.keys(HERO_MAP);
-const HERO_FALLBACK = <div style={{ position: 'absolute', inset: 0, background: '#0a0a0a' }} />;
+import { KpiSkeleton, HeroSkeleton } from '../../molecules/Skeleton/Skeleton';
+import { Suspense, useCallback, useMemo, memo, useState, useTransition } from 'react';
+import { useData } from '../../../data/contexts';
+import { HERO_MAP, HERO_KEYS } from '../../../heroes/registry';
 
 const WIDGET_MAP = {
   'kpi-simple': KpiSimple,
@@ -37,7 +25,7 @@ const WIDGET_MAP = {
   'kpi-metric': KpiMetric,
   'chart-bar': ChartBar,
   'data-table': DataTable,
-  'insight': InsightCard,
+  insight: InsightCard,
 };
 
 const FORMAT_MAP = {
@@ -51,7 +39,7 @@ const FORMAT_MAP = {
   nps: 'number',
 };
 
-const Widget = memo(function Widget({ widgetConfig, data, table, insights }) {
+const Widget = memo(function Widget({ widgetConfig, data, table, insights, loading }) {
   const Component = WIDGET_MAP[widgetConfig.type];
   if (!Component) return null;
 
@@ -66,7 +54,8 @@ const Widget = memo(function Widget({ widgetConfig, data, table, insights }) {
   }
 
   const source = data?.[widgetConfig.source];
-  if (!source) return null;
+  // Enquanto o dado não chegou, ocupa o espaço em vez de sumir.
+  if (!source) return loading ? <KpiSkeleton /> : null;
 
   return (
     <Component
@@ -83,11 +72,13 @@ const Widget = memo(function Widget({ widgetConfig, data, table, insights }) {
 
 function buildHeaderKpis(config, data) {
   if (!config?.header?.kpis || !data) return [];
-  return config.header.kpis.map(key => {
-    const src = data[key];
-    if (!src) return null;
-    return { label: src.label, value: src.value, format: FORMAT_MAP[key] };
-  }).filter(Boolean);
+  return config.header.kpis
+    .map(key => {
+      const src = data[key];
+      if (!src) return null;
+      return { label: src.label, value: src.value, format: FORMAT_MAP[key] };
+    })
+    .filter(Boolean);
 }
 
 const MONTH_LABELS = ['Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai'];
@@ -99,6 +90,10 @@ function getPipelineChart(data) {
 export default function CommandCenter({ config }) {
   const { data, table, events, insights, streaming, startStream, stopStream } = useData();
   const [activeHero, setActiveHero] = useState(config?.hero || 'globe');
+  const [heroEpoch, setHeroEpoch] = useState(0);
+  const [isPending, startTransition] = useTransition();
+
+  const loading = data == null;
 
   const headerKpis = useMemo(() => buildHeaderKpis(config, data), [config, data]);
   const pipelineChart = useMemo(() => getPipelineChart(data), [data]);
@@ -108,48 +103,101 @@ export default function CommandCenter({ config }) {
   const heroComponent = useMemo(() => HERO_MAP[activeHero] || HERO_MAP.globe, [activeHero]);
 
   const handleToggleStream = useCallback(() => {
-    streaming ? stopStream() : startStream();
+    if (streaming) stopStream();
+    else startStream();
   }, [streaming, startStream, stopStream]);
+
+  // startTransition mantém o hero anterior na tela enquanto o próximo chunk
+  // carrega, em vez de piscar um retângulo preto.
+  const handleHeroChange = useCallback(key => {
+    startTransition(() => setActiveHero(key));
+  }, []);
+
+  // Remonta o boundary após um retry, para que o chunk seja pedido de novo.
+  const handleHeroRetry = useCallback(() => setHeroEpoch(n => n + 1), []);
 
   return (
     <div className={styles.root}>
       <HeaderBar
-        title={config?.title || 'COMMAND CENTER'}
+        title={config?.title || 'Command Center'}
         kpis={headerKpis}
         streaming={streaming}
         onToggleStream={handleToggleStream}
       >
-        <HeroToggle heroes={HERO_KEYS} active={activeHero} onChange={setActiveHero} />
+        <HeroToggle
+          heroes={HERO_KEYS}
+          active={activeHero}
+          onChange={handleHeroChange}
+          disabled={isPending}
+        />
       </HeaderBar>
 
       <div className={styles.body}>
-        <Panel position="left">
-          {leftWidgets.map((w, i) => (
-            <Widget key={i} widgetConfig={w} data={data} table={table} insights={insights} />
+        <Panel position="left" label="Indicadores primários">
+          {leftWidgets.map(w => (
+            <Widget
+              key={`${w.type}-${w.source ?? w.index ?? ''}`}
+              widgetConfig={w}
+              data={data}
+              table={table}
+              insights={insights}
+              loading={loading}
+            />
           ))}
-          <ChartBar label="PIPELINE MENSAL" data={pipelineChart} />
+          <ChartBar label="Pipeline mensal" data={pipelineChart} format="currency" />
         </Panel>
 
-        <Suspense fallback={HERO_FALLBACK}>
-          <HeroContainer hero={heroComponent} />
-        </Suspense>
+        {/* O hero é o conteúdo principal — antes era um div sem landmark. */}
+        <main className={styles.main}>
+          <ErrorBoundary
+            key={heroEpoch}
+            title="Visualização indisponível"
+            detail="Não foi possível carregar esta camada 3D. Os indicadores seguem atualizando."
+            onRetry={handleHeroRetry}
+          >
+            <Suspense fallback={<HeroSkeleton />}>
+              <HeroContainer hero={heroComponent} />
+            </Suspense>
+          </ErrorBoundary>
+        </main>
 
-        <Panel position="right">
-          {rightWidgets.map((w, i) => (
-            <Widget key={i} widgetConfig={w} data={data} table={table} insights={insights} />
+        <Panel position="right" label="Indicadores secundários">
+          {rightWidgets.map(w => (
+            <Widget
+              key={`${w.type}-${w.source ?? w.index ?? ''}`}
+              widgetConfig={w}
+              data={data}
+              table={table}
+              insights={insights}
+              loading={loading}
+            />
           ))}
         </Panel>
       </div>
 
       <BottomBar>
+        {/* Classes explícitas por slot. Antes eram :first-child/:nth-child(2)/
+            :last-child contra três slots renderizados condicionalmente — se a
+            tabela esvaziasse, o feed casava com dois seletores ao mesmo tempo
+            e o rodapé inteiro reflowava errado. */}
         <div className={styles.bottomInner}>
-          {insights?.[0] && (
-            <InsightCard {...insights[0]} variant="bottom" />
-          )}
-          {bottomConfig && data && (
-            <Widget widgetConfig={bottomConfig} data={data} table={table} insights={insights} />
-          )}
-          <EventFeed events={events} />
+          <div className={styles.slotInsight}>
+            {insights?.[0] && <InsightCard {...insights[0]} variant="bottom" />}
+          </div>
+          <div className={styles.slotTable}>
+            {bottomConfig && (
+              <Widget
+                widgetConfig={bottomConfig}
+                data={data}
+                table={table}
+                insights={insights}
+                loading={loading}
+              />
+            )}
+          </div>
+          <div className={styles.slotFeed}>
+            <EventFeed events={events} />
+          </div>
         </div>
       </BottomBar>
     </div>

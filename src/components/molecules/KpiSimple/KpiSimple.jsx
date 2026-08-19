@@ -10,13 +10,8 @@ export default function KpiSimple({ label, value, delta, format = 'number', form
 
   return (
     <div className={styles.card}>
-      <Label color="muted">{label}</Label>
-      <span
-        className={styles.value}
-        style={{ transition: 'opacity 180ms cubic-bezier(0.4,0,0.2,1)', opacity: visible ? 1 : 0.65 }}
-      >
-        {display}
-      </span>
+      <Label>{label}</Label>
+      <span className={`${styles.value} ${visible ? '' : styles.updating}`}>{display}</span>
       {delta != null && <Delta value={delta} />}
     </div>
   );

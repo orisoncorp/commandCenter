@@ -1,33 +1,54 @@
 import { useState, useCallback } from 'react';
 import styles from './HeroContainer.module.css';
 import DetailPanel from '../../../heroes/shared/DetailPanel';
+import { useStream } from '../../../data/contexts';
+import { formatBRL, formatDate } from '../../../data/format';
 
 export default function HeroContainer({ hero: HeroComponent }) {
   const [hoverState, setHoverState] = useState(null);
+  const { table } = useStream();
 
   const handleHover = useCallback((contract, anchor = null) => {
     setHoverState(contract ? { contract, anchor } : null);
   }, []);
 
+  // Trocar de hero destrói os nós que possuíam o hover, então o pointer-out
+  // que limparia o painel nunca dispara — ele ficava preso na tela, sobre a
+  // visualização nova, nas coordenadas antigas. Ajuste durante o render é o
+  // padrão recomendado para reset de estado derivado.
+  const [prevHero, setPrevHero] = useState(HeroComponent);
+  if (prevHero !== HeroComponent) {
+    setPrevHero(HeroComponent);
+    setHoverState(null);
+  }
+
   const hoveredContract = hoverState?.contract || null;
 
   return (
     <div className={styles.hero}>
-      {HeroComponent ? (
-        <HeroComponent onHoverContract={handleHover} hoveredContract={hoveredContract} />
-      ) : (
-        <div className={styles.placeholder}>
-          <svg className={styles.wireframe} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="60" cy="60" r="50" stroke="currentColor" strokeWidth="0.5" strokeDasharray="4 4" />
-            <circle cx="60" cy="60" r="35" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 3" />
-            <circle cx="60" cy="60" r="20" stroke="currentColor" strokeWidth="0.5" />
-            <line x1="10" y1="60" x2="110" y2="60" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 4" />
-            <line x1="60" y1="10" x2="60" y2="110" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 4" />
-            <ellipse cx="60" cy="60" rx="50" ry="18" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 3" />
-          </svg>
-          <span className={styles.placeholderLabel}>HERO 3D</span>
-          <span className={styles.placeholderSub}>config.hero não definido</span>
-        </div>
+      {/* O canvas não tinha role, nem aria-label, nem alternativa textual —
+          para um leitor de tela era um elemento vazio, e os dados dos
+          contratos só existiam via hover de mouse. */}
+      <div
+        className={styles.canvasRegion}
+        role="img"
+        aria-label="Visualização 3D dos contratos ativos. A mesma informação está na tabela abaixo."
+      >
+        {HeroComponent && (
+          <HeroComponent onHoverContract={handleHover} hoveredContract={hoveredContract} />
+        )}
+      </div>
+
+      {/* Alternativa textual: mesma informação que o hover revela. */}
+      {table?.length > 0 && (
+        <ul className={styles.srOnly}>
+          {table.map(row => (
+            <li key={row.contrato}>
+              {row.empresa}, contrato {row.contrato}, {formatBRL(row.mrr)} de MRR, status{' '}
+              {row.status}, revisão em {formatDate(row.revisao)}.
+            </li>
+          ))}
+        </ul>
       )}
 
       {hoverState && <DetailPanel contract={hoverState.contract} anchor={hoverState.anchor} />}

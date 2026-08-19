@@ -1,39 +1,53 @@
 .card {
-  background: transparent;
-  padding: var(--space-3) var(--space-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--color-glass-border);
-  transition: background 200ms var(--motion-easing-state);
-}
-
-.card:last-child {
-  border-bottom: none;
-}
-
-.card:hover {
-  background: rgba(255, 255, 255, 0.02);
+  composes: card from '../../../styles/primitives.module.css';
 }
 
 .value {
-  font-family: var(--font-display);
-  font-size: var(--display-md);
-  font-weight: 300;
-  color: var(--color-text-primary);
-  line-height: 1;
-  letter-spacing: -0.5px;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "lnum", "tnum";
-  display: inline-block;
-  min-width: 140px;
+  composes: valueType from '../../../styles/primitives.module.css';
+  composes: tabular from '../../../styles/primitives.module.css';
+  width: 100%;
   text-align: right;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-state);
+}
+
+.updating {
+  opacity: 0.65;
+}
+
+.sparkWrap {
+  position: relative;
+  width: 100%;
+  height: 40px;
 }
 
 .spark {
   width: 100%;
-  height: 40px;
+  height: 100%;
   display: block;
-  margin-top: var(--space-1);
-  opacity: 0.85;
+}
+
+/* Marcador do ponto atual em HTML, não em SVG: um <circle> dentro de um
+   viewBox esticado escala junto e vira um borrão em painel largo. */
+.endDot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-data-primary);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Wipe da esquerda para a direita — independente de escala. */
+.reveal {
+  animation: sparkWipe var(--motion-duration-slow) var(--motion-easing-enter) both;
+}
+
+@keyframes sparkWipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 -8px 0 0);
+  }
 }

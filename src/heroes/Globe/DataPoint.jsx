@@ -1,8 +1,11 @@
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import styles from './Globe.module.css';
+import { HERO_COLORS } from '../palette';
+
+const NO_RAYCAST = () => null;
 
 const VISUAL_RADIUS = 0.022;
 const LABEL_RADIUS = 1.14;
@@ -31,7 +34,10 @@ export default function DataPoint({
 }) {
   const visualRef = useRef();
   const haloRef = useRef();
-  const [mountScale, setMountScale] = useState(reducedMotion ? 1 : 0);
+  // Ref, não state: era setState a cada frame de rAF por 400ms e por ponto —
+  // ~150-350 renders do React nos primeiros 600ms depois do mount.
+  const mountScaleRef = useRef(reducedMotion ? 1 : 0);
+  const mountElapsedRef = useRef(0);
   const { camera } = useThree();
 
   const position = useMemo(() => latLngToVec3(lat, lng, 1.02), [lat, lng]);
@@ -43,20 +49,8 @@ export default function DataPoint({
   const lastSweepCrossRef = useRef(false); // was sweep overlapping last frame?
 
   useEffect(() => {
-    if (reducedMotion) return;
-    let raf;
-    const timer = setTimeout(() => {
-      const start = performance.now();
-      const duration = 400;
-      const animate = (now) => {
-        const t = Math.min((now - start) / duration, 1);
-        setMountScale(1 - Math.pow(1 - t, 3));
-        if (t < 1) raf = requestAnimationFrame(animate);
-      };
-      raf = requestAnimationFrame(animate);
-    }, mountDelay);
-    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
-  }, [reducedMotion, mountDelay]);
+    if (reducedMotion) mountScaleRef.current = 1;
+  }, [reducedMotion]);
 
   const pulseProgressRef = useRef(-1);
   useEffect(() => {
@@ -91,7 +85,7 @@ export default function DataPoint({
     return null;
   }, []);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!visualRef.current) return;
 
     visualRef.current.getWorldPosition(worldPositionRef.current);
@@ -113,8 +107,16 @@ export default function DataPoint({
 
     const depthOpacity = reducedMotion ? 0.95 : THREE.MathUtils.lerp(0.2, 0.95, Math.max(0, facing));
 
+    const dt = Math.min(delta, 0.1);
+
+    if (!reducedMotion && mountScaleRef.current < 1) {
+      mountElapsedRef.current += dt;
+      const mt = Math.max(0, mountElapsedRef.current - mountDelay / 1000) / 0.4;
+      mountScaleRef.current = mt >= 1 ? 1 : 1 - Math.pow(1 - mt, 3);
+    }
+
     const hoverTarget = hoveredRef.current ? 1.8 : 1.0;
-    hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * 0.14;
+    hoverScaleRef.current += (hoverTarget - hoverScaleRef.current) * (1 - Math.exp(-9 * dt));
 
     // ── radar sweep flash detection ──
     if (!reducedMotion && sweepAngleRef?.current !== undefined) {
@@ -131,7 +133,9 @@ export default function DataPoint({
 
     let pulseMultiplier = 1;
     if (pulseProgressRef.current >= 0) {
-      pulseProgressRef.current = Math.min(pulseProgressRef.current + 0.016 / 0.3, 1);
+      // 0.016 era um frame time cravado: o pulso durava 0.3s a 60Hz e
+      // 0.125s a 144Hz.
+      pulseProgressRef.current = Math.min(pulseProgressRef.current + dt / 0.3, 1);
       pulseMultiplier = 1 + 0.3 * Math.sin(pulseProgressRef.current * Math.PI);
       if (pulseProgressRef.current >= 1) pulseProgressRef.current = -1;
     }
@@ -139,19 +143,13 @@ export default function DataPoint({
     const t = clock.getElapsedTime() + heartbeatOffsetRef.current;
     const heartbeat = reducedMotion ? 1 : 1 + 0.08 * (0.5 + 0.5 * Math.sin((t / 2) * Math.PI * 2));
 
-    const effectiveMountScale = reducedMotion ? 1 : mountScale;
+    const effectiveMountScale = reducedMotion ? 1 : mountScaleRef.current;
     visualRef.current.scale.setScalar(effectiveMountScale * hoverScaleRef.current * pulseMultiplier * heartbeat);
 
     const dotMat = visualRef.current.material;
-    if (dotMat) {
-      const next = depthOpacity * 0.95;
-      if (Math.abs(dotMat.opacity - next) > 0.001) { dotMat.opacity = next; dotMat.needsUpdate = true; }
-    }
+    if (dotMat) dotMat.opacity = depthOpacity * 0.95;
     const haloMat = haloRef.current?.material;
-    if (haloMat) {
-      const next = depthOpacity * 0.15;
-      if (Math.abs(haloMat.opacity - next) > 0.001) { haloMat.opacity = next; haloMat.needsUpdate = true; }
-    }
+    if (haloMat) haloMat.opacity = depthOpacity * 0.15;
   });
 
   const handleEnter = (event) => {
@@ -163,11 +161,6 @@ export default function DataPoint({
     }
   };
 
-  const handleMove = (event) => {
-    if (!isFrontRef.current || !data) return;
-    event.stopPropagation();
-    onHover(data, getAnchor(event));
-  };
 
   const handleLeave = (event) => {
     event.stopPropagation();
@@ -184,21 +177,20 @@ export default function DataPoint({
   return (
     <>
       {/* Halo ring */}
-      <mesh ref={haloRef} position={position}>
+      <mesh ref={haloRef} position={position} raycast={NO_RAYCAST}>
         <ringGeometry args={[VISUAL_RADIUS * 1.8, VISUAL_RADIUS * 2.2, 24]} />
-        <meshBasicMaterial color="#8B1A1A" transparent opacity={0.15} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={HERO_COLORS.crimson} transparent opacity={0.15} depthWrite={false} side={THREE.DoubleSide} toneMapped={false} />
       </mesh>
 
       {/* Visual dot */}
-      <mesh ref={visualRef} position={position}>
+      <mesh ref={visualRef} position={position} raycast={NO_RAYCAST}>
         <sphereGeometry args={[VISUAL_RADIUS, 8, 8]} />
-        <meshBasicMaterial color={hovered ? '#F06070' : '#8B1A1A'} transparent opacity={0.95} />
+        <meshBasicMaterial color={hovered ? HERO_COLORS.crimsonBright : HERO_COLORS.dataPoint} transparent opacity={0.95} toneMapped={false} />
       </mesh>
 
       <mesh
         position={position}
         onPointerOver={handleEnter}
-        onPointerMove={handleMove}
         onPointerOut={handleLeave}
       >
         <sphereGeometry args={[VISUAL_RADIUS * 4.2, 16, 16]} />

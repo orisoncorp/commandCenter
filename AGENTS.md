@@ -1,83 +1,85 @@
 # Codex Project Instructions
 
-This is the Codex equivalent of `CLAUDE.md`. Keep it aligned with the same
-project intent, but prefer Codex-native wording and the current repository state
-when package metadata or files have drifted.
+Equivalente Codex do `CLAUDE.md`. Mantenha alinhado com a mesma intenção de
+projeto, preferindo redação Codex-native e o estado atual do repositório.
 
 ## Commands
 
-Use the global RTK convention for shell commands, for example `rtk npm run build`.
+Convenção global RTK para shell, por exemplo `rtk npm run build`.
 
 ```bash
 npm run dev
-npm run lint
+npm run lint      # baseline atual: 0 issues
 npm run build
 npm run preview
 ```
 
-For code changes, run `npm run lint` and `npm run build` unless the change is
-pure documentation.
+Para mudanças de código, rode `npm run lint` e `npm run build` salvo alteração
+puramente documental.
 
 ## Stack
 
-- Vite + React, with dependency versions defined by `package.json`.
-- CSS Modules with custom properties inherited from `orisonDesign.md`.
-- Three.js via `@react-three/fiber` and `@react-three/drei`.
-- No Tailwind; use the local token system.
+- Vite + **React 19** (versões em `package.json`).
+- CSS Modules com custom properties herdadas do `orisonDesign.md`.
+- Three.js via `@react-three/fiber` e `@react-three/drei`.
+- Sem Tailwind; use o sistema de tokens local.
 
 ## Architecture
 
 - Atomic Design: atoms -> molecules -> organisms -> templates.
-- Configuration lives in JSON files under `src/configs/`.
-- Data flows through `src/data/DataProvider.jsx`, transform helpers, and
-  interchangeable adapters.
-- Motion constants and hooks live in `src/motion/`.
-- Token files live in `src/tokens/`; global app styles live in `src/styles/`.
+- Configuração em `src/configs/`, incluindo o bloco `theme` (identidade visual).
+- Dados via `src/data/DataProvider.jsx` + `contexts.js` + `adapters/` resolvidos
+  por `config.data.adapter`.
+- Tokens em `src/tokens/`; receitas compartilhadas em
+  `src/styles/primitives.module.css` (use `composes:`, não copie o bloco).
+- Motion em `src/motion/`; `assertMotionParity()` guarda o espelho CSS/JS.
 
-## Component Structure
+## Invariantes
 
-- `src/components/atoms/`: Badge, Label, Value, Delta, Dot, Timestamp.
-- `src/components/molecules/`: KPI, chart, table, feed, and insight primitives.
-- `src/components/organisms/`: Panel, HeaderBar, BottomBar, HeroContainer,
-  HeroToggle.
-- `src/components/templates/CommandCenter/`: root application layout.
-- Create one component per folder with `.jsx` plus `.module.css`, matching the
-  existing local pattern.
+Estes são contratos, não preferências:
+
+- **Piso tipográfico de 10px.** Escala em `rem`; `html` fica em `font-size: 100%`.
+  Nunca aplique `font-size` no `html` junto de uma escala em rem.
+- **Valores numéricos usam o sans**; Cormorant fica na camada editorial.
+- **`--color-crimson` nunca é tinta de dado** (2.1:1 sobre quase-preto). Use
+  `--color-data-primary`. Não-texto exige 3:1, texto exige 4.5:1.
+- **`<Canvas>` sempre com `flat`** — sem isso o ACES tone mapping do R3F
+  descasa a cor 3D do token CSS.
+- **Cor 3D só de `src/heroes/palette.js`.** Animação 3D multiplica por `delta`.
+- **`prefers-reduced-motion`** tem alternativa intencional; a camada 3D lê via
+  `usePrefersReducedMotion()`.
+- **Heroes lazy ficam sob `ErrorBoundary`.**
+- **Datas ISO passam por `parseLocalDate`** — `new Date('2026-06-15')` é
+  meia-noite UTC e renderiza um dia antes em UTC-3.
+- Slots de layout usam classes explícitas, nunca `:nth-child` contra conteúdo
+  condicional.
+
+## Verificação de design
+
+```bash
+node ~/.claude/skills/impeccable/scripts/detect.mjs --json src index.html
+```
+
+Alterou `src/tokens/dataviz.css`? Revalide com `validate_palette.js` da skill
+`dataviz` (`--ordinal` para rampas). Achado aceito: Montserrat é sinalizada
+como fonte saturada e permanece por decisão de marca.
 
 ## Heroes
 
-Four production-ready hero systems live under `src/heroes/`:
-
-- `Globe`: georeferenced 3D sphere with pins, radar sweep, and connection lines.
-- `NetworkGraph`: radial hub with satellites and animated edge particles.
-- `ParticleStream`: ribbon/particle throughput visualization.
-- `DataCube`: multidimensional wireframe cube visualization.
-
-All heroes are interactive. Preserve hover behavior, detail panels, and
-performance considerations when editing them.
-
-## Visual System
-
-- Preserve the unified dark glass material across header, panels, and bottom
-  bar.
-- KPI cards intentionally avoid individual borders; use subtle separators and
-  spacing.
-- Background atmosphere, detail panel glass, and coordinated loading sequence
-  are part of the v1 visual contract.
-- `orisonDesign.md`, `orisonMotion.md`, and `commandCenterMigration.md` are the
-  normative docs for visual, motion, and migration behavior.
+Quatro sistemas em `src/heroes/`: `Globe`, `NetworkGraph`, `ParticleStream`,
+`DataCube`. Preserve hover **e clique** (o clique é o caminho de touch), os
+detail panels, o opt-out de raycast na geometria decorativa e a ausência de
+`material.needsUpdate` nos loops de frame.
 
 ## Migration Protocol
 
-`commandCenterMigration.md` is the executable runbook for adapting the Command
-Center to a client vertical. It covers inventory, decision trees, input schema,
-quality gates, anti-patterns, and examples. Treat it as the source for migration
-agents and verticalization work.
+`commandCenterMigration.md` é o runbook de adaptação por vertical. O bloco
+`theme` do config é onde a marca do cliente entra.
 
 ## Conventions
 
-- Components: PascalCase, for example `Badge.jsx`.
-- CSS Modules: camelCase from JavaScript, kebab-case inside CSS selectors.
-- Tokens: `--color-*`, `--motion-*`, `--space-*`, `--font-*`, `--dv-*`.
-- Vertical configs: `src/configs/{vertical-name}.json`.
-- Prefer config/data adapters over hardcoded client-specific values.
+- Componentes PascalCase, por exemplo `Badge.jsx`.
+- CSS Modules camelCase no JS, kebab-case no CSS.
+- Tokens: `--color-*`, `--motion-*`, `--space-*`, `--font-*`, `--dv-*`, `--size-*`.
+- Configs por vertical em `src/configs/{vertical-name}.json`.
+- Prefira config/adapters a valores cravados por cliente.

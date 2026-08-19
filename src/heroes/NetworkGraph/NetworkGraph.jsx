@@ -3,8 +3,12 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import styles from './NetworkGraph.module.css';
-import { useStream } from '../../data/DataProvider';
+import { useStream } from '../../data/contexts';
 import { calcStaggerDelay } from '../../motion/constants';
+import { usePrefersReducedMotion } from '../../motion/usePrefersReducedMotion';
+import { CANVAS_GL, CANVAS_DPR, applyClearColor, HERO_COLORS, HERO_THREE_COLORS } from '../palette';
+
+const ROTATION_SPEED = 0.108; // rad/s
 
 // ─── topology: Hub Radial ─────────────────────────────────────────────────────
 // Index 0 = hub (center). Indices 1-5 = satellites in true 3D volume.
@@ -80,17 +84,26 @@ function EdgeLine({ satIdx, highlighted }) {
   );
   useEffect(() => () => geometry.dispose(), [geometry]);
 
-  useFrame(() => {
+  const wasHighlighted = useRef(null);
+  useFrame((_, delta) => {
     if (!matRef.current) return;
+    const dt = Math.min(delta, 0.1);
     const target = highlighted ? 0.42 : 0.12;
-    opacityRef.current += (target - opacityRef.current) * 0.12;
+    opacityRef.current += (target - opacityRef.current) * (1 - Math.exp(-8 * dt));
     matRef.current.opacity = opacityRef.current;
-    matRef.current.color.set(highlighted ? '#8B1A1A' : '#e8e6e1');
+    // Antes: color.set('<string>') a cada frame para as 5 arestas — 300
+    // parses de string CSS por segundo, todos com resultado idêntico.
+    if (wasHighlighted.current !== highlighted) {
+      wasHighlighted.current = highlighted;
+      matRef.current.color.copy(
+        highlighted ? HERO_THREE_COLORS.crimson : HERO_THREE_COLORS.offwhite
+      );
+    }
   });
 
   return (
     <line geometry={geometry} raycast={() => null}>
-      <lineBasicMaterial ref={matRef} color="#e8e6e1" transparent opacity={0.12} depthWrite={false} />
+      <lineBasicMaterial ref={matRef} color={HERO_COLORS.offwhite} transparent opacity={0.12} depthWrite={false} />
     </line>
   );
 }
@@ -133,11 +146,13 @@ function EdgeParticles({ driftedSatPositions }) {
           s.active    = true;
           s.t         = 0;
           s.direction = Math.random() < 0.5 ? 1 : -1;
+          s.speed = 0.30 + Math.random() * 0.05;
         }
         continue;
       }
 
-      s.t += delta * (0.30 + Math.random() * 0.05);
+      // A velocidade é sorteada uma vez na partida, não a cada frame.
+      s.t += delta * s.speed;
       if (s.t >= 1) {
         s.active    = false;
         s.waitTimer = 1.8 + Math.random() * 2.8;
@@ -183,7 +198,7 @@ function EdgeParticles({ driftedSatPositions }) {
           raycast={() => null}
         >
           <sphereGeometry args={[0.013, 6, 6]} />
-          <meshBasicMaterial color="#F06070" transparent opacity={0.88} depthWrite={false} />
+          <meshBasicMaterial color={HERO_COLORS.crimsonBright} transparent opacity={0.88} depthWrite={false} />
         </mesh>
       ))}
     </>
@@ -195,7 +210,7 @@ function EdgeParticles({ driftedSatPositions }) {
 // edges: raycast={() => null} → lines never intercept pointer events
 
 function NetworkNode({
-  nodeIdx, position, empresa, data,
+  nodeIdx, position, data,
   onHover, hovered, reducedMotion, mountDelay,
   mrrRadius, isHub,
 }) {
@@ -244,12 +259,12 @@ function NetworkNode({
     const dotMat = visualRef.current.material;
     if (dotMat) {
       const next = depthFade * 0.95;
-      if (Math.abs(dotMat.opacity - next) > 0.001) { dotMat.opacity = next; dotMat.needsUpdate = true; }
+      dotMat.opacity = next;
     }
     const haloMat = haloRef.current?.material;
     if (haloMat) {
       const next = depthFade * (isHub ? 0.22 : 0.18);
-      if (Math.abs(haloMat.opacity - next) > 0.001) { haloMat.opacity = next; haloMat.needsUpdate = true; }
+      haloMat.opacity = next;
     }
   });
 
@@ -284,12 +299,12 @@ function NetworkNode({
     <>
       <mesh ref={haloRef} position={position} raycast={() => null}>
         <ringGeometry args={[haloInner, haloOuter, 28]} />
-        <meshBasicMaterial color="#8B1A1A" transparent opacity={isHub ? 0.22 : 0.18} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={HERO_COLORS.crimson} transparent opacity={isHub ? 0.22 : 0.18} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh ref={visualRef} position={position} raycast={() => null}>
         <sphereGeometry args={[mrrRadius, 12, 12]} />
-        <meshBasicMaterial color={hovered ? '#F06070' : '#8B1A1A'} transparent opacity={0.95} />
+        <meshBasicMaterial color={hovered ? HERO_COLORS.crimsonBright : HERO_COLORS.dataPoint} transparent opacity={0.95} />
       </mesh>
 
       {/* depthTest=false + renderOrder=999: hitbox always on top of depth buffer */}
@@ -309,12 +324,12 @@ function HubGlow() {
       {/* Wide ambient glow */}
       <mesh raycast={() => null}>
         <sphereGeometry args={[0.70, 32, 32]} />
-        <meshBasicMaterial color="#8B1A1A" transparent opacity={0.04} side={THREE.BackSide} depthWrite={false} />
+        <meshBasicMaterial color={HERO_COLORS.crimson} transparent opacity={0.04} side={THREE.BackSide} depthWrite={false} />
       </mesh>
       {/* Tighter core glow */}
       <mesh raycast={() => null}>
         <sphereGeometry args={[0.22, 24, 24]} />
-        <meshBasicMaterial color="#8B1A1A" transparent opacity={0.06} side={THREE.BackSide} depthWrite={false} />
+        <meshBasicMaterial color={HERO_COLORS.crimson} transparent opacity={0.06} side={THREE.BackSide} depthWrite={false} />
       </mesh>
     </>
   );
@@ -325,14 +340,23 @@ function HubGlow() {
 function NetworkScene({ nodes, hoveredId, onHover, reducedMotion, rotating }) {
   const groupRef = useRef();
 
+  // Içado para fora do corpo do .map(): antes era recalculado uma vez por
+  // nó, a cada render.
+  const maxMrr = useMemo(
+    () => Math.max(...nodes.filter(n => !n.isHub).map(n => n.contract?.mrr || 0), 1),
+    [nodes]
+  );
+
   // Satellite world positions (drifted) — mutated in-place, read by EdgeParticles
   const driftedSatPositions = useRef(
     SATELLITE_INDICES.map(si => [...NODE_DATA[si].position])
   );
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!groupRef.current) return;
-    if (!reducedMotion && rotating) groupRef.current.rotation.y += 0.0018;
+    if (!reducedMotion && rotating) {
+      groupRef.current.rotation.y += ROTATION_SPEED * Math.min(delta, 0.1);
+    }
 
     if (!reducedMotion) {
       const t = clock.getElapsedTime();
@@ -366,7 +390,6 @@ function NetworkScene({ nodes, hoveredId, onHover, reducedMotion, rotating }) {
       {/* All nodes (hub + satellites) */}
       {nodes.map((node, i) => {
         const mrr      = node.contract?.mrr || 0;
-        const maxMrr   = Math.max(...nodes.filter(n => !n.isHub).map(n => n.contract?.mrr || 0), 1);
         const mrrRatio = node.isHub ? 1 : mrr / maxMrr;
         // Hub: fixed prominent size; satellites: 0.026→0.048 range
         const mrrRadius = node.isHub ? 0.058 : (0.026 + mrrRatio * 0.022);
@@ -397,7 +420,9 @@ export default function NetworkGraph({ onHoverContract, hoveredContract }) {
   const { table } = useStream();
   const [rotating, setRotating] = useState(true);
   const rotateResumeRef = useRef(null);
-  const reducedMotion   = false; // live monitoring display — animations are core
+  // A instrumentação já existia e estava ligada; só o interruptor
+  // estava cravado em false.
+  const reducedMotion = usePrefersReducedMotion();
 
   // Hub gets no contract — it's the system core, not a client
   const nodes = useMemo(() => NODE_DATA.map(node => ({
@@ -439,13 +464,16 @@ export default function NetworkGraph({ onHoverContract, hoveredContract }) {
     <Canvas
       className={styles.canvas}
       camera={{ position: [0, 0, 2.8], fov: 40, near: 0.1, far: 100 }}
-      gl={{ antialias: true, alpha: false }}
-      onCreated={({ gl }) => gl.setClearColor('#0a0a0a', 1)}
+      gl={CANVAS_GL}
+      dpr={CANVAS_DPR}
+      /* `flat` desliga o ACES tone mapping default do R3F — sem ele a
+         cor autorada em JS não bate com o mesmo token no CSS. */
+      flat
+      onCreated={({ gl }) => applyClearColor(gl)}
     >
-      <ambientLight intensity={0.03} />
-      <pointLight position={[3, 3, 3]}    intensity={0.45} color="#ffffff" />
-      <pointLight position={[-3, -2, -3]} intensity={0.12} color="#8B1A1A" />
-      <directionalLight position={[-3, 2, -5]} intensity={0.15} color="#e8e6e1" />
+      {/* Luzes removidas: todo material aqui é não-iluminado
+          (MeshBasic/LineBasic/Points), então elas custavam travessia de
+          grafo por frame para contribuir zero pixel. */}
 
       <NetworkScene
         nodes={nodes}

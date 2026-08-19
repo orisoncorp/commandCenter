@@ -1,12 +1,10 @@
 .panel {
+  composes: glass from '../../../styles/primitives.module.css';
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 280px;
-  z-index: 10;
-  background: var(--color-glass-surface);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  width: var(--size-rail-w);
+  z-index: var(--z-panel);
   overflow: visible;
 }
 
@@ -15,25 +13,38 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: var(--space-3);
+  padding: var(--space-4);
   overflow-y: auto;
-  scrollbar-width: none;
-}
-
-.scroll::-webkit-scrollbar {
-  display: none;
+  /* A scrollbar era escondida de propósito — o que remove a única
+     afordância de que existe mais conteúdo abaixo. */
+  scrollbar-width: thin;
 }
 
 .scroll > * {
-  animation: panelItemIn 500ms var(--motion-easing-emphasis) both;
+  animation: panelItemIn var(--motion-duration-moderate) var(--motion-easing-enter) both;
 }
 
-.scroll > *:nth-child(1) { animation-delay: 80ms; }
-.scroll > *:nth-child(2) { animation-delay: 130ms; }
-.scroll > *:nth-child(3) { animation-delay: 180ms; }
-.scroll > *:nth-child(4) { animation-delay: 230ms; }
-.scroll > *:nth-child(5) { animation-delay: 280ms; }
-.scroll > *:nth-child(6) { animation-delay: 330ms; }
+/* Stagger com decaimento, alinhado ao calcStaggerDelay do motion layer.
+   Antes era uma escada linear de +50ms escrita à mão, que contradizia o
+   STAGGER.decay de 0.9 usado no resto do produto. */
+.scroll > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.scroll > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.scroll > *:nth-child(3) {
+  animation-delay: 114ms;
+}
+.scroll > *:nth-child(4) {
+  animation-delay: 163ms;
+}
+.scroll > *:nth-child(5) {
+  animation-delay: 206ms;
+}
+.scroll > *:nth-child(6) {
+  animation-delay: 246ms;
+}
 
 @keyframes panelItemIn {
   from {
@@ -54,12 +65,12 @@
   content: '';
   position: absolute;
   top: 0;
-  right: -64px;
-  width: 64px;
+  right: calc(var(--size-fade) * -1);
+  width: var(--size-fade);
   height: 100%;
   background: linear-gradient(to right, var(--color-glass-surface), transparent);
   pointer-events: none;
-  z-index: 11;
+  z-index: 1;
 }
 
 .right {
@@ -70,21 +81,18 @@
   content: '';
   position: absolute;
   top: 0;
-  left: -64px;
-  width: 64px;
+  left: calc(var(--size-fade) * -1);
+  width: var(--size-fade);
   height: 100%;
   background: linear-gradient(to left, var(--color-glass-surface), transparent);
   pointer-events: none;
-  z-index: 11;
+  z-index: 1;
 }
 
 @media (max-width: 900px) {
   .panel {
     position: relative;
-    top: auto;
-    bottom: auto;
-    left: auto;
-    right: auto;
+    inset: auto;
     width: 100%;
     overflow: hidden;
   }
@@ -95,5 +103,6 @@
 
   .scroll {
     overflow-y: visible;
+    height: auto;
   }
 }

@@ -1,19 +1,31 @@
 .value {
+  composes: valueType from '../../../styles/primitives.module.css';
   display: inline-block;
-  font-family: var(--font-display);
-  font-weight: 300;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "lnum", "tnum";
 }
 
-.sm { font-size: var(--display-sm); }
-.md { font-size: var(--display-md); }
-.lg { font-size: var(--display-lg); }
-.xl { font-size: var(--display-xl); }
-.hero { font-size: var(--display-hero); }
+/* Tamanhos */
+.sm {
+  font-size: var(--value-sm);
+}
+.md {
+  font-size: var(--value-md);
+}
+.lg {
+  font-size: var(--value-lg);
+}
 
-.primary { color: var(--color-text-primary); }
-.secondary { color: var(--color-text-secondary); }
-.muted { color: var(--color-text-muted); }
-.crimson { color: var(--color-crimson-text); }
+/* Cores */
+.primary {
+  color: var(--color-text-primary);
+}
+.secondary {
+  color: var(--color-text-secondary);
+}
+.crimson {
+  color: var(--color-crimson-text);
+}
+
+/* Em colunas, dígitos precisam de largura fixa. */
+.tabular {
+  composes: tabular from '../../../styles/primitives.module.css';
+}
